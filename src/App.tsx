@@ -8,7 +8,7 @@ function App() {
     <div className="App">
       
     <Provider>
-      <Greeting name="Raya" />
+      <Greeting name="David Raya" />
     </Provider>
 
     </div>
