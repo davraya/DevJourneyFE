@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from './logo.svg';
+import { Provider } from './components/ui/provider'
 import './App.css';
 import Greeting from '../src/components/Greeting';
 
@@ -7,8 +7,9 @@ function App() {
   return (
     <div className="App">
       
-
-      <Greeting name="David" />
+    <Provider>
+      <Greeting name="Raya" />
+    </Provider>
 
     </div>
   );
