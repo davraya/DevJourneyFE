@@ -7,6 +7,7 @@ interface ProgressCircleProps {
 }
 
 const ProgressCircle = ({ value, label }: ProgressCircleProps) => {
+  
   return (
     <CircularProgress value={value} size="120px">
       <CircularProgressLabel>{label}</CircularProgressLabel>
