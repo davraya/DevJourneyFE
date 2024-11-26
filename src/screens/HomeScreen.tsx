@@ -1,83 +1,68 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Text, 
-  Card, 
-  CardHeader, 
-  CardBody, 
-  Box, 
-  VStack, 
-  StackDivider, 
-  Stack,
-  Heading 
-} from '@chakra-ui/react';
-import ProgressCircle from '../components/ProgressCircle';
-import TabsC from '../components/TabsC';
-import {fetchRoot} from '../api/api';
-
+import React, {useEffect, useState} from 'react';
+import { Box, VStack, Spinner, Button, HStack } from '@chakra-ui/react';
+import LinkC from '../components/LinkC';
+import {fetchUserWeeklyGoals} from '../api/api';
+import { WeeklyGoalsResponse } from '../types/WeeklyGoalsResponse';
+import  GoalStack from '../components/GoalStack';
+import Journal from '../components/Journal';
+import { CalendarComponent } from '../components/Calendar';
 
 
 const HomeScreen = () => {
 
-  const [data, setData] = useState(null);
+  const userId = '67070e23eb54589c5995d33e'; // Hardcoded user ID
+
+  const [goalMetrics, setGoalMetrics] = useState<WeeklyGoalsResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchGoalMetrics = async () => {
       try {
-        const result = await fetchRoot();
-        setData(result.name);
+        const data = await fetchUserWeeklyGoals(userId);
+        setGoalMetrics(data);
       } catch (err) {
-        console.log(err);
+        console.error('Error fetching weekly goals:', err);
+        setError((err as Error).message || 'Something went wrong');
       } finally {
-        
+        setLoading(false);
       }
     };
-    
-    console.log('fetching data');
-    loadData();
+    fetchGoalMetrics();
   }, []);
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <Spinner size="xl" />
+      </Box>
+    );
+  }
 
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+    <>
+      <HStack>
+        <CalendarComponent />
+        <Box display="flex" flexDirection="column"  alignItems="center" paddingTop="40px" maxW="800px">
+          {goalMetrics ? (
+            <GoalStack goals={goalMetrics} />
+          ): 
+          <Button onClick={() => console.log('No goal metrics')}>No goal metrics</Button>}
+          
+          <Journal />
+        </Box>
 
-      <VStack spacing="8" align="center">
-        <TabsC />
+        
+      </HStack>
+      
+      <LinkC to="/about">Go to About</LinkC>
 
-        <ProgressCircle value={50} label="5/10" />
-
-        <Card width="90%" maxWidth="400px" boxShadow="lg" p="4">
-          <CardHeader>
-            <Heading size="md" textAlign="center">{data}</Heading>
-          </CardHeader>
-
-          <CardBody>
-            <Stack divider={<StackDivider />} spacing="4">
-              <Box>
-                <Heading size="xs" textTransform="uppercase">
-                  Summary
-                </Heading>
-                <Text pt="2" fontSize="sm">
-                  View a summary of all your clients over the last month.
-                </Text>
-              </Box>
-              <Box>
-                <Heading size="xs" textTransform="uppercase">
-                  Analysis
-                </Heading>
-                <Text pt="2" fontSize="sm">
-                  See a detailed analysis of all your business clients.
-                </Text>
-              </Box>
-            </Stack>
-          </CardBody>
-        </Card>
-
-        <Link to="/about">Go to About</Link>
-      </VStack>
-    </Box>
+      
+      
+    </>
+    
   );
 };
 
