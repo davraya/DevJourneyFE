@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import { Box, VStack, Spinner, Button, HStack } from '@chakra-ui/react';
+import { Box, Spinner, Button, HStack } from '@chakra-ui/react';
 import LinkC from '../components/LinkC';
 import {fetchUserWeeklyGoals} from '../api/api';
 import { WeeklyGoalsResponse } from '../types/WeeklyGoalsResponse';
@@ -43,7 +43,7 @@ const HomeScreen = () => {
 
   return (
     <>
-      <HStack>
+      <HStack justify="center" spacing={38}>
         <CalendarComponent />
         <Box display="flex" flexDirection="column"  alignItems="center" paddingTop="40px" maxW="800px">
           {goalMetrics ? (

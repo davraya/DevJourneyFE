@@ -91,7 +91,9 @@ const ProgressCircle = ({ current, total, label, goalType, userId, goalId }: Pro
         </CircularProgressLabel>
       </CircularProgress>
 
-      <Text>{label}</Text>
+      <Box textAlign="center" fontSize="md">
+        <Text>{label}</Text>
+      </Box>             
 
       <HStack spacing="4">
         <Button size="xs" onClick={handleDecrease} fontSize={20} width="30px" height="30px">

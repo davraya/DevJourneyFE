@@ -8,7 +8,7 @@ export const CalendarComponent = () => {
   const today = new Date();
 
   return (
-    <Box
+    <Box padding="25px"
       sx={{
         ".react-calendar": {
           backgroundColor: "gray.800", // Dark background
@@ -24,6 +24,16 @@ export const CalendarComponent = () => {
           fontSize: "16px",
           fontWeight: "bold",
           cursor: "pointer",
+          transition: "all 0.3s ease",
+        },
+        ".react-calendar__navigation button:focus": {
+          outline: "none", // Removes the focus outline
+          backgroundColor: "transparent", // Matches the default state
+        },
+        ".react-calendar__navigation button:hover": {
+          backgroundColor: "blue.700", // Hover effect for navigation buttons
+          color: "white",
+          borderRadius: "4px",
         },
         ".react-calendar__tile": {
           background: "transparent",
@@ -42,7 +52,7 @@ export const CalendarComponent = () => {
           fontWeight: "bold",
         },
         ".react-calendar__tile:hover": {
-          background: "blue.700", // Hover effect
+          background: "blue.700", // Hover effect for days
           color: "white",
         },
       }}
