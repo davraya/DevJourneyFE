@@ -16,6 +16,9 @@ export const CalendarComponent = () => {
           borderRadius: "8px",
           padding: "16px",
           boxShadow: "lg",
+          width: "320px", // Fixed width
+          height: "360px", // Fixed height
+          overflow: "hidden", // Prevent overflow issues
         },
         ".react-calendar__navigation button": {
           color: "white",

@@ -10,7 +10,9 @@ import {
   Button,
   useToast,
 } from "@chakra-ui/react";
-import { updateActual } from "../api/api"; // Import the updateActual function
+import { updateActual } from "../api/goals"; // Import the updateActual function
+import { RootState } from "../redux/store";
+import { useSelector } from "react-redux";
 
 interface ProgressCircleProps {
   current: number;
@@ -24,10 +26,12 @@ interface ProgressCircleProps {
 const ProgressCircle = ({ current, total, label, goalType, userId, goalId }: ProgressCircleProps) => {
   const [progress, setProgress] = useState({ current, total });
   const toast = useToast();
+  const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
+
 
   const updateProgress = async (increment: number) => {
     try {
-      const response = await updateActual(userId, goalId, goalType, increment);
+      const response = await updateActual(userId, goalId, goalType, increment, jwtToken ?? undefined);
       console.log("Increment response:", response);
       if (response.success) {
         setProgress({ ...progress, current: response.updatedValue! });

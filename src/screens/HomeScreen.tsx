@@ -1,36 +1,49 @@
 import React, {useEffect, useState} from 'react';
-import { Box, Spinner, Button, HStack } from '@chakra-ui/react';
+import { Box, Spinner, Button, HStack, VStack } from '@chakra-ui/react';
 import LinkC from '../components/LinkC';
-import {fetchUserWeeklyGoals} from '../api/api';
+import {fetchUserWeeklyGoals} from '../api/goals';
 import { WeeklyGoalsResponse } from '../types/WeeklyGoalsResponse';
 import  GoalStack from '../components/GoalStack';
 import Journal from '../components/Journal';
 import { CalendarComponent } from '../components/Calendar';
+import { WeeklyJournalResponse } from '../types/WeeklyJournalResponse';
+
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "../redux/store";
+import { fetchJournal, saveJournal, updateEntry } from "../redux/journalSlice";
 
 
 const HomeScreen = () => {
-
+  const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
   const userId = '67070e23eb54589c5995d33e'; // Hardcoded user ID
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { journal, isSaving, error } = useSelector((state: RootState) => state.journal);
 
   const [goalMetrics, setGoalMetrics] = useState<WeeklyGoalsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
 
   useEffect(() => {
     const fetchGoalMetrics = async () => {
       try {
-        const data = await fetchUserWeeklyGoals(userId);
+        console.log("Homescreen token",jwtToken); // This will log the token to the console
+        if (!jwtToken) {
+          throw new Error("JWT token is missing");
+        }
+        const data = await fetchUserWeeklyGoals(userId, jwtToken);
         setGoalMetrics(data);
       } catch (err) {
         console.error('Error fetching weekly goals:', err);
-        setError((err as Error).message || 'Something went wrong');
+        // setError((err as Error).message || 'Something went wrong');
       } finally {
         setLoading(false);
       }
     };
+    
     fetchGoalMetrics();
-  }, []);
+    // dispatch(fetchJournal(userId));
+  }, [dispatch]);
 
   if (loading) {
     return (
@@ -40,9 +53,8 @@ const HomeScreen = () => {
     );
   }
 
-
   return (
-    <>
+    <VStack spacing={100}>
       <HStack justify="center" spacing={38}>
         <CalendarComponent />
         <Box display="flex" flexDirection="column"  alignItems="center" paddingTop="40px" maxW="800px">
@@ -50,8 +62,12 @@ const HomeScreen = () => {
             <GoalStack goals={goalMetrics} />
           ): 
           <Button onClick={() => console.log('No goal metrics')}>No goal metrics</Button>}
-          
-          <Journal />
+
+          {journal? (
+            <Journal journal={journal} />
+          ):
+          <Button onClick={() => console.log('No journal')}>No journal</Button>
+            }
         </Box>
 
         
@@ -61,7 +77,7 @@ const HomeScreen = () => {
 
       
       
-    </>
+    </VStack>
     
   );
 };

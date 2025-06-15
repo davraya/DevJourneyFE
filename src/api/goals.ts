@@ -2,7 +2,8 @@ import axios from 'axios';
 import {WeeklyGoalsResponse} from '../types/WeeklyGoalsResponse';
 import {MetricUpdateResponse} from '../types/MetricUpdateResponse';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL
 
 /**
  * Increment the actual value of a specific goal for a user.
@@ -18,13 +19,20 @@ export const updateActual = async (
   userId: string, 
   goalId: string, 
   goalType: string, 
-  amount: number
+  amount: number,
+  token? : string
 ): Promise<MetricUpdateResponse> => {
 
-  const url = `${API_BASE_URL}/api/users/${userId}/weekly-goals/${goalId}/updateActual`;
+  const url = `${API_BASE_URL}/api/weekly-goals/${userId}/${goalId}/updateActual`;
 
   try {
     const response = await axios.patch<MetricUpdateResponse>(url, null, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${token}`,
+
+    
+      },
       params: {
         goalType,
         amount,
@@ -56,12 +64,21 @@ export const updateActual = async (
  * @returns A promise that resolves to the user's most recent weekly goals.
  * @throws Will throw an error if the request fails.
  */
-export const fetchUserWeeklyGoals = async (userId: string): Promise<WeeklyGoalsResponse> => {
+export const fetchUserWeeklyGoals = async (userId: string, token? : string): Promise<WeeklyGoalsResponse> => {
 
-  const url = `${API_BASE_URL}/api/users/${userId}/weekly-goals/most-recent`;
+  const url = `${API_BASE_URL}/api/weekly-goals/${userId}/most-recent`;
+
 
   try {
-    const response = await axios.get<WeeklyGoalsResponse>(url);
+    const response = await axios.get<WeeklyGoalsResponse>(url,{
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${token}`,
+
+    
+      },
+      
+    });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
