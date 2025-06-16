@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import { Box, Spinner, Button, HStack, VStack } from '@chakra-ui/react';
 import LinkC from '../components/LinkC';
-import {fetchUserWeeklyGoals} from '../api/goals';
+import {fetchUserWeeklyGoals, createWeeklyGoals} from '../api/goals';
 import { WeeklyGoalsResponse } from '../types/WeeklyGoalsResponse';
 import  GoalStack from '../components/GoalStack';
 import Journal from '../components/Journal';
@@ -15,7 +15,8 @@ import { fetchJournal, saveJournal, updateEntry } from "../redux/journalSlice";
 
 const HomeScreen = () => {
   const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
-  const userId = '67070e23eb54589c5995d33e'; // Hardcoded user ID
+  const userId =  useSelector((state: RootState) => state.user.userId);
+
 
   const dispatch = useDispatch<AppDispatch>();
   const { journal, isSaving, error } = useSelector((state: RootState) => state.journal);
@@ -23,11 +24,12 @@ const HomeScreen = () => {
   const [goalMetrics, setGoalMetrics] = useState<WeeklyGoalsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  console.log('jwtToken:', jwtToken);
+  console.log('userId:', userId);
 
   useEffect(() => {
     const fetchGoalMetrics = async () => {
       try {
-        console.log("Homescreen token",jwtToken); // This will log the token to the console
         if (!jwtToken) {
           throw new Error("JWT token is missing");
         }
@@ -40,8 +42,26 @@ const HomeScreen = () => {
         setLoading(false);
       }
     };
+
+    const createGoalMetrics = async () => {
+      try {
+        if (!jwtToken) {
+          throw new Error("JWT token is missing");
+        }
+        const data = await createWeeklyGoals(userId, jwtToken);
+        setGoalMetrics(data);
+      } catch (err) {
+        console.error('Error fetching weekly goals:', err);
+        // setError((err as Error).message || 'Something went wrong');
+      } finally {
+        setLoading(false);
+      }
+    };
     
     fetchGoalMetrics();
+    if(!goalMetrics) {
+      createGoalMetrics();
+    }
     // dispatch(fetchJournal(userId));
   }, [dispatch]);
 

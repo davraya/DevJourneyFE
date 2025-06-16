@@ -2,13 +2,16 @@ import React from "react";
 import ProgressCircle from "./ProgressCircle";
 import { HStack } from "@chakra-ui/react";
 import { WeeklyGoalsResponse } from "../types/WeeklyGoalsResponse";
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
 
 
 
 
 const GoalStack = ({ goals }: { goals: WeeklyGoalsResponse }) => {
 
-    const userId = '67070e23eb54589c5995d33e'; // Hardcoded user ID
+
+  const userId =  useSelector((state: RootState) => state.user.userId);
 
 
   return (

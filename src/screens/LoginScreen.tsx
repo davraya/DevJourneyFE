@@ -4,7 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useDispatch } from 'react-redux';
 import { login } from "../redux/appSlice";
-import { handleCredentialResponse, handleGetUserInfo } from '../api/auth';
+import { handleCredentialResponse } from '../api/auth';
+
+import { UserState } from "../redux/states";
+import { updateUser } from '../redux/userSlice';
+
 
 
 const LoginScreen = () => {
@@ -17,9 +21,17 @@ const handleLogin = async (credentialResponse: any) => {
         const jwtToken = userInfo.jwtToken;
         console.log("LoginScreen", userInfo);
 
-        console.log("LoginScreen", userInfo.jwtToken);
         localStorage.setItem('token', jwtToken);
         dispatch(login(jwtToken));
+
+        const userState: UserState = {
+            userId: userInfo.userId,
+            name: userInfo.name,
+            picture: userInfo.picture,
+        
+        };
+        localStorage.setItem('userId', userState.userId);
+        dispatch(updateUser(userState));
 
         navigate('/home');
     } catch (err) {

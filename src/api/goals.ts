@@ -94,3 +94,42 @@ export const fetchUserWeeklyGoals = async (userId: string, token? : string): Pro
   }
 };
 
+
+/**
+ * Create the most recent weekly goals for a user.
+ * 
+ * @param userId - The unique identifier of the user whose weekly goals are being fetched.
+ * @returns A promise that resolves to the user's most recent weekly goals after creation.
+ * @throws Will throw an error if the request fails.
+ */
+export const createWeeklyGoals = async (userId: string, token? : string): Promise<WeeklyGoalsResponse> => {
+
+  const url = `${API_BASE_URL}/api/users/${userId}/weekly-goals/new`;
+
+
+  try {
+    const response = await axios.post<WeeklyGoalsResponse>(url,{
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${token}`,
+
+        
+      },
+      
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error creating new Weekly Goals:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Unexpected error fetching user’s most recent Weekly Goals:', error);
+    }
+    throw error;
+  }
+};
+
+
