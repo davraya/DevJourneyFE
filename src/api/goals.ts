@@ -72,14 +72,14 @@ export const fetchUserWeeklyGoals = async (userId: string, token? : string): Pro
   try {
     const response = await axios.get<WeeklyGoalsResponse>(url,{
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
 
     
       },
       
     });
-    return response.data;
+    return  response.data; 
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error('Axios error fetching user’s most recent Weekly Goals:', {
@@ -110,7 +110,7 @@ export const createWeeklyGoals = async (userId: string, token? : string): Promis
   try {
     const response = await axios.post<WeeklyGoalsResponse>(url,{
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
 
         

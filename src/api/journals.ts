@@ -1,62 +1,31 @@
 import axios from 'axios';
-import { WeeklyJournalResponse } from '../types/WeeklyJournalResponse';
-import { JournalEntry } from '../types/WeeklyJournalResponse';
+import { JournalResponse } from '../types/JournalResponse';
+import { EntryResponse } from '../types/JournalResponse';
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL
 
-/**
- * Fetch the most recent weekly goals for a user.
- * 
- * @param userId - The unique identifier of the user whose weekly goals are being fetched.
- * @returns A promise that resolves to the user's most recent weekly journal.
- * @throws Will throw an error if the request fails.
- */
-export const fetchUserJournals = async (userId: string): Promise<WeeklyJournalResponse[]> => {
 
-  const url = `${API_BASE_URL}/api/weekly-journals/${userId}/get-all`;
-
-  try {
-    const response = await axios.get<WeeklyJournalResponse[]>(url);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error('Axios error fetching user’s most recent Weekly Journal:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-      });
-    } else {
-      console.error('Unexpected error fetching user’s most recent Weekly Journal:', error);
-    }
-    throw error;
-  }
-};
-
-
-/**
- * Edit a journal entry's content for a specific user.
- * 
- * @param userId - The unique identifier of the user.
- * @param journalId - The unique identifier of the journal containing the entry.
- * @param entryId - The unique identifier of the entry to be edited.
- * @param content - The updated content for the journal entry.
- * @returns A promise that resolves to the updated journal entry.
- * @throws Will throw an error if the request fails.
- */
-export const editEntry = async (
+  export const addEntry = async (
     userId: string,
-    journalId: string,
-    entryId: string,
-    content: string
-  ): Promise<JournalEntry> => {
-    const url = `${API_BASE_URL}/api/weekly-journals/${userId}/${journalId}/${entryId}/edit-entry`;
+    token: string,
+    content: string,
+    dateTime: string,
+    title: string
+  ): Promise<EntryResponse> => {
+    const url = `${API_BASE_URL}/api/journal/${userId}/add-entry`;
   
     try {
-      const response = await axios.patch<JournalEntry>(url, null, {
+      const response = await axios.patch<EntryResponse>(url, null, {
         params: {
           content,
+          dateTime,
+          title
         },
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       });
       return response.data;
     } catch (error) {
@@ -73,3 +42,96 @@ export const editEntry = async (
     }
   };
   
+
+
+export const fetchEntry = async (userId: string, token: string, date: Date): Promise<EntryResponse> => {
+
+  const url = `${API_BASE_URL}/api/journal/${userId}/entry`;
+
+  try {
+    const response = await axios.get<EntryResponse>(url,{
+      params: {
+        date,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching entry:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Unexpected error fetching entry:', error);
+    }
+    throw error;
+  }
+};
+
+
+export const editEntry = async (
+    userId: string,
+    token: string,
+    entryId: string,
+    content: string, 
+    title: string
+  ): Promise<EntryResponse> => {
+    const url = `${API_BASE_URL}/api/journal/${userId}/${entryId}/edit-entry`;
+  
+    try {
+      const response = await axios.patch<EntryResponse>(url, null, {
+        params: {
+          content,
+          title,
+        },
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error editing journal entry:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+      } else {
+        console.error('Unexpected error editing journal entry:', error);
+      }
+      throw error;
+    }
+  };
+
+  export const fetchJournal = async (userId: string, token: string): Promise<JournalResponse> => {
+
+  const url = `${API_BASE_URL}/api/journal/${userId}`;
+
+  try {
+    const response = await axios.get<JournalResponse>(url,{
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching journal:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Unexpected error fetching journal:', error);
+    }
+    throw error;
+  }
+};
+

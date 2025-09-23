@@ -15,29 +15,29 @@ const LoginScreen = () => {
     const navigate = useNavigate();
 
     const dispatch = useDispatch();
-const handleLogin = async (credentialResponse: any) => {
-    try {
-        const userInfo = await handleCredentialResponse(credentialResponse);
-        const jwtToken = userInfo.jwtToken;
-        console.log("LoginScreen", userInfo);
+    const handleLogin = async (credentialResponse: any) => {
+        try {
+            const userInfo = await handleCredentialResponse(credentialResponse);
+            const jwtToken = userInfo.jwtToken;
 
-        localStorage.setItem('token', jwtToken);
-        dispatch(login(jwtToken));
+            localStorage.setItem('token', jwtToken);
+            dispatch(login(jwtToken));
 
-        const userState: UserState = {
-            userId: userInfo.userId,
-            name: userInfo.name,
-            picture: userInfo.picture,
-        
-        };
-        localStorage.setItem('userId', userState.userId);
-        dispatch(updateUser(userState));
+            const userState: UserState = {
+                userId: userInfo.userId,
+                name: userInfo.name,
+                picture: userInfo.picture,
+            
+            };
+            localStorage.setItem('userId', userState.userId);
+            dispatch(updateUser(userState));
+
+        } catch (err) {
+            console.error("Login failed:", err);
+        }
 
         navigate('/home');
-    } catch (err) {
-        console.error("Login failed:", err);
-    }
-};
+    };
 
 
     return(
