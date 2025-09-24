@@ -1,37 +1,55 @@
 import React from 'react';
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
-import { ChakraProvider, Box } from "@chakra-ui/react";
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { ChakraProvider, Box, HStack, Button, Spacer } from "@chakra-ui/react";
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 import theme from './theme';
 import HomeScreen from './screens/HomeScreen';
 import AboutScreen from './screens/AboutScreen';
 import LoginScreen from './screens/LoginScreen';
-import { useDispatch } from 'react-redux';
-import { login } from "./redux/appSlice";
+import { useDispatch, useSelector } from 'react-redux';
+import { login, logout } from "./redux/appSlice";
+import { RootState } from './redux/store';
 
+function ProtectedRoute({ children }: { children: JSX.Element }) {
+  const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
+  if (!jwtToken) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
+function AppInner() {
+  const dispatch = useDispatch();
+  const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
+  return (
+    <Router>
+      <Box bg="gray.900" color="white" minHeight="100vh">
+        <HStack px={4} py={2} borderBottom="1px" borderColor="gray.700">
+          <Box fontWeight="bold">Dev Journey</Box>
+          <Spacer />
+          {jwtToken && (
+            <Button size="sm" onClick={() => dispatch(logout())}>Logout</Button>
+          )}
+        </HStack>
+        <Routes>
+          <Route path="/" element={<LoginScreen />} />
+          <Route path="/home" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
+          <Route path="/about" element={<ProtectedRoute><AboutScreen /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to={jwtToken ? "/home" : "/"} replace />} />
+        </Routes>
+      </Box>
+    </Router>
+  );
+}
 
 function App() {
-  // const dispatch = useDispatch();
-
-//   const handleLogin = () => {
-//     dispatch(login());
-// };
-
   return (
     <Provider store={store}>
       <ChakraProvider theme={theme}>
-        <Router>
-          <Box bg="gray.900" color="white" minHeight="100vh">
-            <Routes>
-              <Route path="/" element={<LoginScreen />} />
-              <Route path="/home" element={<HomeScreen />} />
-              <Route path="/about" element={<AboutScreen />} />
-            </Routes>
-          </Box>
-        </Router>
+        <AppInner />
       </ChakraProvider>
     </Provider>
   );

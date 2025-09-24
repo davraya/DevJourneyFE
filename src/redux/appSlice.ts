@@ -48,8 +48,14 @@ const appSlice = createSlice({
             state.loggedIn = true;
             state.jwtToken = action.payload
         },
+        logout(state) {
+            state.loggedIn = false;
+            state.jwtToken = null;
+            state.userId = "";
+            localStorage.removeItem('token');
+        },
     },
 });
 
-export const { updateDate, updateUserId, login } = appSlice.actions;
+export const { updateDate, updateUserId, login, logout } = appSlice.actions;
 export default appSlice.reducer;
