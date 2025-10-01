@@ -18,24 +18,24 @@ const API_BASE_URL =
 export const updateActual = async (
   userId: string, 
   goalId: string, 
-  goalType: string, 
-  amount: number,
+  metricId: string, 
+  value: number,
   token? : string
 ): Promise<MetricUpdateResponse> => {
 
-  const url = `${API_BASE_URL}/api/weekly-goals/${userId}/${goalId}/updateActual`;
+  const url = `${API_BASE_URL}/api/goal/${userId}/${goalId}/updateActual`;
 
   try {
     const response = await axios.patch<MetricUpdateResponse>(url, null, {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
 
     
       },
       params: {
-        goalType,
-        amount,
+        metricId,
+        value,
       },
     });
 

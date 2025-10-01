@@ -3,7 +3,7 @@ import { HStack } from "@chakra-ui/react";
 import { JournalResponse } from "../types/JournalResponse";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
-import { editEntry } from "../api/journals";
+import { editEntry, deleteEntry, updateActual } from "../api/journals";
 import JournalList from "./JournalList";
 import JournalEditor from "./JournalEditor";
 import { sortEntriesByDateDesc } from "../utils/date";
@@ -89,6 +89,58 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
     return () => clearTimeout(timer);
   }, [content, title, hasUserEdited, hasUserEditedTitle, selectedEntryId, jwtToken, userId]);
 
+  const handleDeleteEntry = async (entryId: string) => {
+    if (!jwtToken) return;
+    try {
+      await deleteEntry(userId, jwtToken, entryId);
+      setLocalEntries((prev) => prev.filter((e: any) => e.id !== entryId));
+      setSelectedId((prevId) => {
+        if (prevId !== entryId) return prevId;
+        const remaining = localEntries.filter((e: any) => e.id !== entryId);
+        return remaining.length ? remaining[0].id : null;
+      });
+    } catch (err) {
+      setSaveError("Failed to delete entry.");
+    }
+  };
+
+  const handleUpdateGoal = async (metricId: string, amount: number) => {
+    if (!jwtToken || !selectedEntryId) return;
+    
+    // Find the current metric to calculate the new absolute value
+    const currentEntry = localEntries.find((e: any) => e.id === selectedEntryId);
+    const currentMetric = currentEntry?.goal?.metrics?.find((m: any) => m.id === metricId);
+    
+    if (!currentMetric) return;
+    
+    const newAbsoluteValue = Math.max(0, currentMetric.actual + amount);
+    
+    try {
+      const updatedMetric = await updateActual(userId, jwtToken, selectedEntryId, metricId, newAbsoluteValue);
+      setLocalEntries((prev) =>
+        prev.map((entry: any) => {
+          if (entry.id === selectedEntryId && entry.goal?.metrics) {
+            return {
+              ...entry,
+              goal: {
+                ...entry.goal,
+                metrics: entry.goal.metrics.map((metric: any) =>
+                  metric.id === metricId
+                    ? { ...metric, actual: updatedMetric.actual }
+                    : metric
+                ),
+              },
+            };
+          }
+          return entry;
+        })
+      );
+    } catch (err) {
+      console.error("Error updating goal:", err);
+      setSaveError("Failed to update goal. Please check your connection and try again.");
+    }
+  };
+
   return (
     <HStack align="start" justify="flex-start" spacing={6} width="100%" height="100vh">
       <JournalList
@@ -96,6 +148,7 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
         selectedId={selectedId}
         onSelect={(id) => setSelectedId(id)}
         onAddEntry={onAddEntry}
+        onDeleteEntry={handleDeleteEntry}
       />
 
       {selectedEntry && (
@@ -105,6 +158,8 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
           dateTime={selectedEntryDate}
           isSaving={isSaving}
           saveError={saveError}
+          goals={selectedEntry.goal?.metrics}
+          onUpdateGoal={handleUpdateGoal}
           onTitleChange={(v) => {
             setTitle(v);
             setHasUserEditedTitle(true);

@@ -109,6 +109,70 @@ export const editEntry = async (
     }
   };
 
+export const deleteEntry = async (
+  userId: string,
+  token: string,
+  entryId: string
+): Promise<{ success: boolean }> => {
+  const url = `${API_BASE_URL}/api/journal/${userId}/${entryId}/delete-entry`;
+
+  try {
+    const response = await axios.delete<{ success: boolean }>(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error deleting journal entry:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Unexpected error deleting journal entry:', error);
+    }
+    throw error;
+  }
+};
+
+export const updateActual = async (
+  userId: string,
+  token: string,
+  entryId: string,
+  metricId: string,
+  amount: number
+): Promise<{ id: string; actual: number; goal: number; name: string }> => {
+  const url = `${API_BASE_URL}/api/goal/${userId}/${entryId}/updateActual`;
+
+  try {
+    const response = await axios.patch<{ id: string; actual: number; goal: number; name: string }>(url, null, {
+      params: {
+        metricId,
+        value: amount,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error updating actual value:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Unexpected error updating actual value:', error);
+    }
+    throw error;
+  }
+};
+
   export const fetchJournal = async (userId: string, token: string): Promise<JournalResponse> => {
 
   const url = `${API_BASE_URL}/api/journal/${userId}`;
