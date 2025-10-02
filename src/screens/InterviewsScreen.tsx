@@ -281,23 +281,24 @@ useEffect(() => {
   }
 
   return (
-    <Box p={6} maxW="1200px" mx="auto" height="100vh" display="flex" flexDirection="column">
-      <VStack align="stretch" spacing={4}>
+    <Box p={6} maxW="1200px" mx="auto" flex="1" display="flex" flexDirection="column" overflow="hidden" minH={0}>
+      <VStack align="stretch" spacing={4} flexShrink={0}>
         <HStack justify="space-between">
           <Text fontSize="2xl" fontWeight="bold">Interviews</Text>
           <Button colorScheme="blue" onClick={handleAddInterview}>+ Add Interview</Button>
         </HStack>
       </VStack>
 
-      {error && (
-        <Alert status="error" mb={4}>
-          <AlertIcon />
-          {error}
-        </Alert>
-      )}
+      <Box flex="1" minH={0} display="flex" flexDirection="column">
+        {error && (
+          <Alert status="error" mb={4} flexShrink={0}>
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
 
-      <Box flex="1" overflowY="auto">
-      <VStack spacing={3} align="stretch">
+        <Box height="100vh" overflowY="auto" pr={1} pb={36}>
+          <VStack spacing={3} align="stretch">
         {interviews.length === 0 ? (
           <Card>
             <CardBody textAlign="center" py={8}>
@@ -518,7 +519,8 @@ useEffect(() => {
             </Card>
           ))
         )}
-      </VStack>
+        </VStack>
+        </Box>
       </Box>
 
       {/* Add/Edit Modal */}

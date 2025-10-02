@@ -20,7 +20,7 @@ interface JournalEditorProps {
 
 const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleChange, onContentChange, onBackMobile, goals, onUpdateGoal, titleRef, contentRef }: JournalEditorProps) => {
   return (
-    <Box flex={1} height="100vh" overflowY="hidden" pt={4}>
+    <Box flex={1} overflowY="auto" pt={4} pb={24}>
       <Card>
         <CardBody>
           <Box mb={2} display={{ base: onBackMobile ? "block" : "none", md: "none" }}>

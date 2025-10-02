@@ -27,7 +27,7 @@ function AppInner() {
   const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
   return (
     <Router>
-      <Box bg="gray.900" color="white" minHeight="100vh">
+      <Box bg="gray.900" color="white" minHeight="100vh" display="flex" flexDirection="column">
         <HStack px={4} py={2} borderBottom="1px" borderColor="gray.700" alignItems="center">
           <Box fontWeight="bold">Dev Journey</Box>
           <Spacer />
@@ -42,12 +42,14 @@ function AppInner() {
             <Button size="sm" onClick={() => dispatch(logout())}>Logout</Button>
           )}
         </HStack>
-        <Routes>
-          <Route path="/" element={<LoginScreen />} />
-          <Route path="/home" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
-          <Route path="/interviews" element={<ProtectedRoute><InterviewsScreen /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to={jwtToken ? "/home" : "/"} replace />} />
-        </Routes>
+        <Box flex="1" overflowY="hidden">
+          <Routes>
+            <Route path="/" element={<LoginScreen />} />
+            <Route path="/home" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
+            <Route path="/interviews" element={<ProtectedRoute><InterviewsScreen /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to={jwtToken ? "/home" : "/"} replace />} />
+          </Routes>
+        </Box>
       </Box>
     </Router>
   );

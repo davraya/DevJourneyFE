@@ -35,6 +35,7 @@ const JournalList = ({ entries, selectedId, onSelect, onAddEntry, onDeleteEntry 
       pr={2}
       pb={4}
       ml={{ base: 4, md: 6 }}
+      pb={24}
     >
       <Box
         position="sticky"
