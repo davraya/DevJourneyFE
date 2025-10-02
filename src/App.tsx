@@ -7,11 +7,12 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 
 import theme from './theme';
 import HomeScreen from './screens/HomeScreen';
-import AboutScreen from './screens/AboutScreen';
+import InterviewsScreen from './screens/InterviewsScreen';
 import LoginScreen from './screens/LoginScreen';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, logout } from "./redux/appSlice";
 import { RootState } from './redux/store';
+import LinkC from "./components/LinkC";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
@@ -27,8 +28,15 @@ function AppInner() {
   return (
     <Router>
       <Box bg="gray.900" color="white" minHeight="100vh">
-        <HStack px={4} py={2} borderBottom="1px" borderColor="gray.700">
+        <HStack px={4} py={2} borderBottom="1px" borderColor="gray.700" alignItems="center">
           <Box fontWeight="bold">Dev Journey</Box>
+          <Spacer />
+          {jwtToken && (
+            <HStack spacing={6}>
+              <LinkC to="/home">Journal</LinkC>
+              <LinkC to="/interviews">Interviews</LinkC>
+            </HStack>
+          )}
           <Spacer />
           {jwtToken && (
             <Button size="sm" onClick={() => dispatch(logout())}>Logout</Button>
@@ -37,7 +45,7 @@ function AppInner() {
         <Routes>
           <Route path="/" element={<LoginScreen />} />
           <Route path="/home" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
-          <Route path="/about" element={<ProtectedRoute><AboutScreen /></ProtectedRoute>} />
+          <Route path="/interviews" element={<ProtectedRoute><InterviewsScreen /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to={jwtToken ? "/home" : "/"} replace />} />
         </Routes>
       </Box>

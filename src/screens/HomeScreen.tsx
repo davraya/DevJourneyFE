@@ -1,16 +1,19 @@
 import React, {useEffect, useState} from 'react';
-import { Box, VStack } from '@chakra-ui/react';
-// import LinkC from '../components/LinkC';
+import { Box, VStack, HStack } from '@chakra-ui/react';
+import LinkC from '../components/LinkC';
 import Journal from '../components/Journal';
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { JournalResponse } from '../types/JournalResponse';
 import { fetchJournal, addEntry } from '../api/journals';
+import { setJournal as setJournalStore } from "../redux/journalSlice";
 
 
 const HomeScreen = () => {
+  const dispatch = useDispatch();
   const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
   const userId =  useSelector((state: RootState) => state.user.userId);
+  const cachedJournal = useSelector((state: RootState) => state.journal.journal);
 
 
   
@@ -39,16 +42,18 @@ const HomeScreen = () => {
   // }, [dispatch]);
 
    useEffect(() => {
-    const runAsync = async () => {
-      if (!jwtToken) return;
-
-      const userJournal = await fetchJournal(userId, jwtToken);
-
-      setJournal(userJournal);
-    };
-
-    runAsync();
-  }, [jwtToken, userId]);
+   const runAsync = async () => {
+     if (!jwtToken || !userId) return;
+     if (cachedJournal) {
+       setJournal(cachedJournal);
+       return;
+     }
+     const userJournal = await fetchJournal(userId, jwtToken);
+     setJournal(userJournal);
+     dispatch(setJournalStore(userJournal));
+   };
+   runAsync();
+ }, [jwtToken, userId, cachedJournal, dispatch]);
 
   const handleAddEntry = () => {
   if (!jwtToken) {
@@ -73,6 +78,7 @@ const HomeScreen = () => {
     .then((updatedJournal) => {
       if (updatedJournal) {
         setJournal(updatedJournal);
+        dispatch(setJournalStore(updatedJournal));
       }
     })
     .catch((error) => {
@@ -92,27 +98,11 @@ const HomeScreen = () => {
   // }
 
   return (
-    <VStack spacing={2} alignSelf="stretch" width="100%" height="100vh" overflow="hidden">
-      <Box width="100%" pl={{ base: 4, md: 6 }} pr={{ base: 4, md: 6 }} height="100%">
-        {/* <CalendarComponent /> */}
-        {/* <Box display="flex" flexDirection="column"  alignItems="center" paddingTop="40px" maxW="800px">
-          {goalMetrics ? (
-            <GoalStack goals={goalMetrics} />
-          ): 
-          <Button onClick={() => console.log('No goal metrics')}>No goal metrics</Button>}
-
-          
-        </Box> */}
+    <VStack spacing={2} alignSelf="stretch" width="100%" minHeight="100vh">
+      <Box width="100%" pl={{ base: 4, md: 6 }} pr={{ base: 4, md: 6 }} flex="1">
         <Journal journal={journal} selectedEntryId={selectedEntryId} onAddEntry={handleAddEntry} />        
       </Box>
-       
-      
-      {/* <LinkC to="/about">Go to About</LinkC> */}
-
-      
-      
     </VStack>
-    
   );
 };
 

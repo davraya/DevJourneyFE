@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { HStack } from "@chakra-ui/react";
 import { JournalResponse } from "../types/JournalResponse";
 import { useSelector } from "react-redux";
@@ -46,37 +46,40 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
   const [saveError, setSaveError] = useState<string | null>(null);
   const [hasUserEdited, setHasUserEdited] = useState<boolean>(false);
   const [hasUserEditedTitle, setHasUserEditedTitle] = useState<boolean>(false);
+  
+  // Refs for uncontrolled input values to avoid re-renders on every keystroke
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const selectedEntryId = selectedEntry?.id ?? null;
   const selectedEntryContent = selectedEntry?.content ?? "";
   const selectedEntryTitle = selectedEntry?.title ?? "";
   const selectedEntryDate = ((selectedEntry as any)?.dateTime || (selectedEntry as any)?.date) as string | undefined;
 
-  useEffect(() => {
-    setContent(selectedEntryContent);
-    setTitle(selectedEntryTitle);
-    setSaveError(null);
-    setHasUserEdited(false);
-    setHasUserEditedTitle(false);
-  }, [selectedEntryId, selectedEntryContent, selectedEntryTitle]);
-
-  useEffect(() => {
-    if (!selectedEntryId || !jwtToken) return;
-    if (!hasUserEdited && !hasUserEditedTitle) return;
-
-    setIsSaving(true);
-    setSaveError(null);
-
-    const timer = setTimeout(async () => {
+  // Debounced autosave function
+  const scheduleAutosave = useCallback(() => {
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+    }
+    autosaveTimer.current = setTimeout(async () => {
+      if (!selectedEntryId || !jwtToken) return;
+      
+      const currentContent = contentRef.current?.value ?? "";
+      const currentTitle = titleRef.current?.value ?? "";
+      
+      setIsSaving(true);
+      setSaveError(null);
+      
       try {
-        const resp = await editEntry(userId, jwtToken, selectedEntryId, content, title);
+        const resp = await editEntry(userId, jwtToken, selectedEntryId, currentContent, currentTitle);
         setIsSaving(false);
-        setHasUserEdited(false);
-        setHasUserEditedTitle(false);
+        setContent(currentContent);
+        setTitle(currentTitle);
         setLocalEntries((prev) =>
           prev.map((it: any) =>
             it.id === selectedEntryId
-              ? { ...it, title: resp.title ?? title, content: resp.content ?? content }
+              ? { ...it, title: resp.title ?? currentTitle, content: resp.content ?? currentContent }
               : it
           )
         );
@@ -85,9 +88,26 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
         setSaveError("Failed to save. Changes will retry on next edit.");
       }
     }, 600);
+  }, [selectedEntryId, jwtToken, userId]);
 
-    return () => clearTimeout(timer);
-  }, [content, title, hasUserEdited, hasUserEditedTitle, selectedEntryId, jwtToken, userId]);
+  useEffect(() => {
+    setContent(selectedEntryContent);
+    setTitle(selectedEntryTitle);
+    if (contentRef.current) contentRef.current.value = selectedEntryContent;
+    if (titleRef.current) titleRef.current.value = selectedEntryTitle;
+    setSaveError(null);
+    setHasUserEdited(false);
+    setHasUserEditedTitle(false);
+  }, [selectedEntryId, selectedEntryContent, selectedEntryTitle]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autosaveTimer.current) {
+        clearTimeout(autosaveTimer.current);
+      }
+    };
+  }, []);
 
   const handleDeleteEntry = async (entryId: string) => {
     if (!jwtToken) return;
@@ -161,13 +181,15 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
           goals={selectedEntry.goal?.metrics}
           onUpdateGoal={handleUpdateGoal}
           onTitleChange={(v) => {
-            setTitle(v);
             setHasUserEditedTitle(true);
+            scheduleAutosave();
           }}
           onContentChange={(v) => {
-            setContent(v);
             setHasUserEdited(true);
+            scheduleAutosave();
           }}
+          titleRef={titleRef}
+          contentRef={contentRef}
         />
       )}
     </HStack>

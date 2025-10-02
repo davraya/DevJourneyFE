@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Box, Card, CardBody, Input, Text, Textarea, Spinner, Button, VStack, HStack, Progress, IconButton } from "@chakra-ui/react";
 import { formatDateTime } from "../utils/date";
 import { GoalMetric } from "../types/JournalResponse";
@@ -14,9 +14,11 @@ interface JournalEditorProps {
   onBackMobile?: () => void;
   goals?: GoalMetric[];
   onUpdateGoal?: (metricId: string, amount: number) => void;
+  titleRef?: React.RefObject<HTMLInputElement>;
+  contentRef?: React.RefObject<HTMLTextAreaElement>;
 }
 
-const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleChange, onContentChange, onBackMobile, goals, onUpdateGoal }: JournalEditorProps) => {
+const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleChange, onContentChange, onBackMobile, goals, onUpdateGoal, titleRef, contentRef }: JournalEditorProps) => {
   return (
     <Box flex={1} height="100vh" overflowY="hidden" pt={4}>
       <Card>
@@ -27,8 +29,14 @@ const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleC
             )}
           </Box>
           <Input
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
+            ref={titleRef}
+            defaultValue={title}
+            onChange={(e) => {
+              onTitleChange(e.target.value);
+            }}
+            onBlur={(e) => {
+              onTitleChange(e.target.value);
+            }}
             placeholder="Title"
             size="lg"
             fontWeight="bold"
@@ -39,8 +47,14 @@ const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleC
             {formatDateTime(dateTime)}
           </Text>
           <Textarea
-            value={content}
-            onChange={(e) => onContentChange(e.target.value)}
+            ref={contentRef}
+            defaultValue={content}
+            onChange={(e) => {
+              onContentChange(e.target.value);
+            }}
+            onBlur={(e) => {
+              onContentChange(e.target.value);
+            }}
             placeholder="Start typing..."
             size="md"
             resize="vertical"
