@@ -1,0 +1,19 @@
+/* LinkC Component Styles */
+
+.nav-link {
+  color: #38b2ac;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: #2c7a7b;
+  background-color: rgba(56, 178, 172, 0.1);
+}
+
+.nav-link:active {
+  color: #285e61;
+}

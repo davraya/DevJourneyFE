@@ -3,8 +3,6 @@ import journalReducer from "./journalSlice";
 import appReducer from "./appSlice";
 import userReducer from "./userSlice";
 import interviewsReducer from "./interviewsSlice";
-
-// Create and configure the store
 export const store = configureStore({
   reducer: {
     journal: journalReducer, // Add your journal slice here
@@ -13,7 +11,5 @@ export const store = configureStore({
     interviews: interviewsReducer,
   },
 });
-
-// Types for Redux
 export type RootState = ReturnType<typeof store.getState>; // Global state type
 export type AppDispatch = typeof store.dispatch; // Dispatch type

@@ -1,62 +1,40 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Card,
-  CardBody,
-  IconButton,
-  useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  useToast,
-  Spinner,
-  Alert,
-  AlertIcon,
-} from "@chakra-ui/react";
-import LinkC from "../components/LinkC";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { Interview, InterviewStatus } from "../types/Interview";
 import { getUserInterviews, addInterview, editInterview, deleteInterview } from "../api/interviews";
 import { setInterviews as setInterviewsStore } from "../redux/interviewsSlice";
+import "./InterviewsScreen.css";
 
 const InterviewsScreen = () => {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{title: string, status: 'success' | 'error'} | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
 
-  // Three-dot menu state
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const showToast = (title: string, status: 'success' | 'error') => {
+    setToastMessage({ title, status });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const onOpen = () => setIsOpen(true);
+  const onClose = () => setIsOpen(false);
 
   const dispatch = useDispatch();
   const jwtToken = useSelector((state: RootState) => state.app.jwtToken);
   const userId = useSelector((state: RootState) => state.user.userId);
   const cachedInterviews = useSelector((state: RootState) => state.interviews.items);
-  const cachedLastFetched = useSelector((state: RootState) => state.interviews.lastFetched);
-
-  // Debounced autosave for notes (per row)
   const notesAutosaveTimers = useRef<Record<string, number | undefined>>({});
   const notesValues = useRef<Record<string, string>>({});
   const AUTOSAVE_MS = 600;
   const [savingNotesById, setSavingNotesById] = useState<Record<string, boolean>>({});
 
-  // Form state
   const [formData, setFormData] = useState({
     position: "",
     company: "",
@@ -65,7 +43,6 @@ const InterviewsScreen = () => {
     notes: "",
   });
 
-// define fetchInterviews first
 const fetchInterviews = useCallback(async () => {
   if (!jwtToken || !userId) return;
   try {
@@ -73,9 +50,11 @@ const fetchInterviews = useCallback(async () => {
     setError(null);
     const data = await getUserInterviews(userId, jwtToken);
     setInterviews(data);
+    setHasFetched(true);
   } catch (err) {
     setError("Failed to fetch interviews");
     console.error("Error fetching interviews:", err);
+    setHasFetched(true);
   } finally {
     setLoading(false);
   }
@@ -86,27 +65,34 @@ useEffect(() => {
     setLoading(false);
     return;
   }
-  // If we already have local data, don't refetch
+  
+  // If we already have interviews in state, stop loading
   if (interviews.length > 0) {
     setLoading(false);
     return;
   }
-  // Hydrate from cache if it has items; otherwise fetch fresh
+  
+  // If we have cached interviews, use them
   if (cachedInterviews && cachedInterviews.length > 0) {
     setInterviews(cachedInterviews);
     setLoading(false);
+    setHasFetched(true);
     return;
   }
-  // No local data and no cached items: fetch
-  fetchInterviews();
-}, [jwtToken, userId, cachedInterviews, fetchInterviews, interviews.length]);
+  
+  // Only fetch if we haven't already fetched
+  if (!hasFetched) {
+    fetchInterviews();
+  } else {
+    // If we've already fetched and have no interviews, stop loading
+    setLoading(false);
+  }
+}, [jwtToken, userId, cachedInterviews, fetchInterviews, interviews.length, hasFetched]);
 
-// Keep Redux cache in sync after local state settles
 useEffect(() => {
   dispatch(setInterviewsStore(interviews));
 }, [interviews, dispatch]);
 
-  // Close menu on any outside click
   useEffect(() => {
     const onDocClick = () => {
       if (openMenuId !== null) {
@@ -130,40 +116,19 @@ useEffect(() => {
     onOpen();
   };
 
-  const handleEditInterview = (interview: Interview) => {
-    setEditingInterview(interview);
-    setFormData({
-      position: interview.position,
-      company: interview.company,
-      status: interview.status,
-      interviewer: interview.interviewer,
-      notes: interview.notes,
-    });
-  };
-
   const handleDeleteInterview = async (interviewId: string) => {
     if (!jwtToken || !userId) return;
     
     try {
       await deleteInterview(userId, jwtToken, interviewId);
-      setInterviews(prev => prev.filter(i => i.id !== interviewId));
-      toast({
-        title: "Interview deleted",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      const updatedInterviews = interviews.filter(i => i.id !== interviewId);
+      setInterviews(updatedInterviews);
+      dispatch(setInterviewsStore(updatedInterviews));
+      showToast("Application deleted", "warning");
     } catch (err) {
-      toast({
-        title: "Failed to delete interview",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Failed to delete application", "error");
     }
   };
-
-  // Save a single interview by id using current local state (with optional field overrides)
   const saveInterviewById = useCallback(async (id: string, overrides?: Partial<Interview>) => {
     if (!jwtToken || !userId) return;
     const current = interviews.find(i => i.id === id);
@@ -183,18 +148,17 @@ useEffect(() => {
       setInterviews(prev => prev.map(i => (i.id === id ? updated : i)));
     } catch (err) {
       console.error("Autosave failed", err);
-      toast({ title: "Failed to autosave interview", status: "error", duration: 1500, isClosable: true });
+      showToast("Failed to autosave application", "error");
     } finally {
       setSavingNotesById(prev => ({ ...prev, [id]: false }));
     }
-  }, [jwtToken, userId, interviews, toast]);
+  }, [jwtToken, userId, interviews]);
 
   const scheduleNotesAutosave = (id: string, value: string) => {
     if (notesAutosaveTimers.current[id]) {
       window.clearTimeout(notesAutosaveTimers.current[id]);
     }
     notesAutosaveTimers.current[id] = window.setTimeout(() => {
-      // Update main state only when saving
       setInterviews(prev => prev.map(i => i.id === id ? { ...i, notes: value } : i));
       void saveInterviewById(id, { notes: value });
     }, AUTOSAVE_MS);
@@ -204,7 +168,6 @@ useEffect(() => {
     if (!jwtToken || !userId) return;
 
     try {
-      // Add new interview (modal submit)
       const newInterview = await addInterview(
         userId,
         jwtToken,
@@ -215,15 +178,10 @@ useEffect(() => {
         formData.notes
       );
       setInterviews(prev => [newInterview, ...prev]);
-      toast({
-        title: "Interview added",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast("Application added", "success");
       onClose();
     } catch (err) {
-      toast({ title: "Failed to add interview", status: "error", duration: 3000, isClosable: true });
+      showToast("Failed to add application", "error");
     }
   };
 
@@ -243,9 +201,9 @@ useEffect(() => {
       setInterviews(prev => prev.map(i => (i.id === id ? updatedInterview : i)));
       dispatch(setInterviewsStore(interviews.map(i => (i.id === id ? updatedInterview : i))));
       setEditingInterview(null);
-      toast({ title: "Interview updated", status: "success", duration: 3000, isClosable: true });
+      showToast("Application updated", "success");
     } catch (err) {
-      toast({ title: "Failed to update interview", status: "error", duration: 3000, isClosable: true });
+      showToast("Failed to update application", "error");
     }
   };
 
@@ -274,325 +232,286 @@ useEffect(() => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <Spinner size="xl" />
-      </Box>
+      <div className="interviews-screen-wrapper">
+        <div className="interviews-loading">
+          <div className="spinner"></div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box p={6} maxW="1200px" mx="auto" flex="1" display="flex" flexDirection="column" overflow="hidden" minH={0}>
-      <VStack align="stretch" spacing={4} flexShrink={0}>
-        <HStack justify="space-between">
-          <Text fontSize="2xl" fontWeight="bold">Interviews</Text>
-          <Button colorScheme="blue" onClick={handleAddInterview}>+ Add Interview</Button>
-        </HStack>
-      </VStack>
+    <div className="interviews-screen">
+      <div className="interviews-header">
+        <button className="add-interview-button" onClick={handleAddInterview}>+ Add Application</button>
+      </div>
 
-      <Box flex="1" minH={0} display="flex" flexDirection="column">
-        {error && (
-          <Alert status="error" mb={4} flexShrink={0}>
-            <AlertIcon />
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <div className="error-alert">
+          <span className="error-icon">⚠️</span>
+          {error}
+        </div>
+      )}
 
-        <Box height="100vh" overflowY="auto" pr={1} pb={36}>
-          <VStack spacing={3} align="stretch">
-        {interviews.length === 0 ? (
-          <Card>
-            <CardBody textAlign="center" py={8}>
-              <Text color="gray.500">No interviews found. Add your first interview!</Text>
-            </CardBody>
-          </Card>
-        ) : (
-          interviews.map((interview) => (
-            <Card key={interview.id} _hover={{ shadow: "md" }}>
-              <CardBody py={2} px={3}>
-                {editingInterview && editingInterview.id === interview.id ? (
-                  <VStack align="stretch" spacing={3}>
-                    <HStack spacing={4}>
-                      <Input
-                        value={formData.position}
-                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                        placeholder="Position"
-                      />
-                      <Select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value as InterviewStatus })}
-                        maxW="220px"
-                      >
-                        <option value={InterviewStatus.APPLIED}>Applied</option>
-                        <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
-                        <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
-                        <option value={InterviewStatus.OFFERED}>Offered</option>
-                        <option value={InterviewStatus.REJECTED}>Rejected</option>
-                        <option value={InterviewStatus.ACCEPTED}>Accepted</option>
-                      </Select>
-                    </HStack>
-                    <Input
-                      value={formData.company}
-                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      placeholder="Company"
-                    />
-                    <Input
-                      value={formData.interviewer}
-                      onChange={(e) => setFormData({ ...formData, interviewer: e.target.value })}
-                      placeholder="Interviewer"
-                    />
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Notes"
-                      rows={3}
-                    />
-                    <HStack justify="flex-end" spacing={3}>
-                      <Button variant="ghost" onClick={handleInlineCancel}>Cancel</Button>
-                      <Button colorScheme="blue" onClick={() => handleInlineSave(interview.id)}>Save</Button>
-                    </HStack>
-                  </VStack>
-                ) : (
-                  <HStack align="left" spacing={2}>
-                    <VStack align="start" spacing={0} flex="0 0 auto" maxW="40%" minW="180px">
-                      <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>
-                        {interview.position?.trim() || "Untitled Position"}
-                      </Text>
-                      <Text fontSize="xs" color="gray.600" noOfLines={1}>
-                        {interview.company?.trim() || "Company not specified"}
-                      </Text>
-                    </VStack>
+      <div className="interviews-list">
+            {interviews.length === 0 ? (
+              <div className="empty-state-card">
+                <div className="empty-state-content">
+                  <p className="empty-state-text">No applications found. Add your first application!</p>
+                </div>
+              </div>
+            ) : (
+              interviews.map((interview) => (
+                <div key={interview.id} className="interview-card">
+                  <div className="interview-card-body">
+                    {editingInterview && editingInterview.id === interview.id ? (
+                      <div className="interview-edit-form">
+                        <div className="form-row">
+                          <input
+                            className="form-input"
+                            value={formData.position}
+                            onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                            placeholder="Position"
+                          />
+                          <select
+                            className="form-select"
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value as InterviewStatus })}
+                            style={{ maxWidth: '220px' }}
+                          >
+                            <option value={InterviewStatus.APPLIED}>Applied</option>
+                            <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
+                            <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
+                            <option value={InterviewStatus.OFFERED}>Offered</option>
+                            <option value={InterviewStatus.REJECTED}>Rejected</option>
+                            <option value={InterviewStatus.ACCEPTED}>Accepted</option>
+                          </select>
+                        </div>
+                        <input
+                          className="form-input"
+                          value={formData.company}
+                          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                          placeholder="Company"
+                        />
+                        <input
+                          className="form-input"
+                          value={formData.interviewer}
+                          onChange={(e) => setFormData({ ...formData, interviewer: e.target.value })}
+                          placeholder="Interviewer"
+                        />
+                        <textarea
+                          className="form-textarea"
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="Notes"
+                          rows={3}
+                        />
+                        <div className="form-actions">
+                          <button className="button button-secondary" onClick={handleInlineCancel}>Cancel</button>
+                          <button className="button button-primary" onClick={() => handleInlineSave(interview.id)}>Save</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="interview-display">
+                        <div className="interview-info">
+                          <div className="interview-title-section">
+                            <h3 className="interview-position">{interview.position?.trim() || "Untitled Position"}</h3>
+                            <p className="interview-company">{interview.company?.trim() || "Company not specified"}</p>
+                          </div>
+                          <div className="interview-interviewer">
+                            <span className="interviewer-label">Interviewer:</span>
+                            <span className="interviewer-name">{interview.interviewer?.trim() || "N/A"}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="interview-status-section">
+                          <div className="status-indicator" style={{ backgroundColor: getStatusColor(interview.status) }}></div>
+                          <select
+                            className="status-select"
+                            value={interview.status}
+                            onChange={(e) => {
+                              const value = e.target.value as InterviewStatus;
+                              setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, status: value } : i));
+                              void saveInterviewById(interview.id, { status: value });
+                            }}
+                          >
+                            <option value={InterviewStatus.APPLIED}>Applied</option>
+                            <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
+                            <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
+                            <option value={InterviewStatus.OFFERED}>Offered</option>
+                            <option value={InterviewStatus.REJECTED}>Rejected</option>
+                            <option value={InterviewStatus.ACCEPTED}>Accepted</option>
+                          </select>
+                        </div>
 
-                    <Box>
-                      <Text fontSize="xs" color="gray.500" minW="80px" noOfLines={1}>
-                          Interviewer:
-                        </Text>
-                      <Text fontSize="xs" color="gray.500" minW="80px" noOfLines={1}>
-                        {interview.interviewer?.trim() || "N/A"}
-                      </Text>
-                    </Box>
-                   
+                        <div className="interview-notes-section">
+                          <textarea
+                            ref={(el) => {
+                              if (el) {
+                                notesValues.current[interview.id] = el.value;
+                              }
+                            }}
+                            defaultValue={interview.notes || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              notesValues.current[interview.id] = value;
+                              scheduleNotesAutosave(interview.id, value);
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value;
+                              setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, notes: value } : i));
+                            }}
+                            placeholder="Notes"
+                            className="notes-textarea"
+                          />
+                        </div>
 
-                    <HStack spacing={2} flexShrink={0}>
-                      <Box
-                        w="8px"
-                        h="8px"
-                        rounded="full"
-                        bg={
-                          interview.status === InterviewStatus.APPLIED
-                            ? "blue.500"
-                            : interview.status === InterviewStatus.INTERVIEW_SCHEDULED
-                            ? "orange.500"
-                            : interview.status === InterviewStatus.INTERVIEWED
-                            ? "yellow.500"
-                            : interview.status === InterviewStatus.OFFERED
-                            ? "purple.500"
-                            : interview.status === InterviewStatus.REJECTED
-                            ? "red.500"
-                            : interview.status === InterviewStatus.ACCEPTED
-                            ? "green.500"
-                            : "gray.400"
-                        }
-                        flexShrink={0}
-                      />
-                      <Select
-                        value={interview.status}
-                        onChange={(e) => {
-                          const value = e.target.value as InterviewStatus;
-                          setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, status: value } : i));
-                          void saveInterviewById(interview.id, { status: value });
-                        }}
-                        size="sm"
-                        maxW="170px"
-                        flexShrink={0}
-                      >
-                        <option value={InterviewStatus.APPLIED}>Applied</option>
-                        <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
-                        <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
-                        <option value={InterviewStatus.OFFERED}>Offered</option>
-                        <option value={InterviewStatus.REJECTED}>Rejected</option>
-                        <option value={InterviewStatus.ACCEPTED}>Accepted</option>
-                      </Select>
-                    </HStack>
+                        <div className="interview-actions">
+                          <div className="saving-indicator">
+                            {savingNotesById[interview.id] && <div className="spinner-small"></div>}
+                          </div>
+                          <button
+                            className="menu-button"
+                            aria-label="More options"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              setMenuPosition({ top: rect.top + window.scrollY, left: rect.right + 8 + window.scrollX });
+                              setOpenMenuId((prev) => (prev === interview.id ? null : interview.id));
+                            }}
+                          >
+                            ⋮
+                          </button>
+                        </div>
 
-                 
-
-                    <Textarea
-                      ref={(el) => {
-                        if (el) {
-                          notesValues.current[interview.id] = el.value;
-                        }
-                      }}
-                      defaultValue={interview.notes || ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        notesValues.current[interview.id] = value;
-                        scheduleNotesAutosave(interview.id, value);
-                      }}
-                      onBlur={(e) => {
-                        const value = e.target.value;
-                        setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, notes: value } : i));
-                      }}
-                      placeholder="Notes"
-                      rows={1}
-                      size="sm"
-                      flex={2}
-                      minW={0}
-                    />
-
-                    <HStack spacing={2}>
-                      <Box width="16px" minW="16px" display="flex" justifyContent="center" alignItems="center">
-                        {savingNotesById[interview.id] ? (
-                          <Spinner size="xs" color="blue.400" />
-                        ) : null}
-                      </Box>
-                      <IconButton
-                        aria-label="More options"
-                        size="xs"
-                        color="gray.500"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setMenuPosition({ top: rect.top + window.scrollY, left: rect.right + 8 + window.scrollX });
-                          setOpenMenuId((prev) => (prev === interview.id ? null : interview.id));
-                        }}
-                        _hover={{ bg: "gray.100", color: "gray.700" }}
-                        _active={{ bg: "gray.200" }}
-                        icon={<Box as="span" fontSize="md" lineHeight="1">⋮</Box>}
-                      />
-                    </HStack>
-                    {openMenuId === interview.id && menuPosition && (
-                      <Box
-                        position="fixed"
-                        top={`${menuPosition.top}px`
-                        }
-                        left={`${menuPosition.left}px`}
-                        zIndex={2000}
-                        bg="transparent"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Box
-                          as="button"
-                          display="block"
-                          w="full"
-                          textAlign="left"
-                          px={3}
-                          py={2}
-                          color="black"
-                          bg="white"
-                          rounded="md"
-                          _hover={{ bg: "gray.50" }}
-                          my={1}
-                          onClick={() => {
-                            setEditingInterview(interview);
-                            setOpenMenuId(null);
-                            setMenuPosition(null);
-                          }}
-                        >
-                          Edit
-                        </Box>
-                        <Box
-                          as="button"
-                          display="block"
-                          w="full"
-                          textAlign="left"
-                          px={3}
-                          py={2}
-                          color="red.600"
-                          bg="white"
-                          rounded="md"
-                          _hover={{ bg: "red.50", color: "red.700" }}
-                          my={1}
-                          onClick={() => {
-                            handleDeleteInterview(interview.id);
-                            setOpenMenuId(null);
-                            setMenuPosition(null);
-                          }}
-                        >
-                          Delete
-                        </Box>
-                      </Box>
+                        {openMenuId === interview.id && menuPosition && (
+                          <div
+                            className="interview-menu"
+                            style={{
+                              position: 'fixed',
+                              top: `${menuPosition.top}px`,
+                              left: `${menuPosition.left}px`,
+                              zIndex: 2000
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              className="menu-item"
+                              onClick={() => {
+                                setEditingInterview(interview);
+                                setOpenMenuId(null);
+                                setMenuPosition(null);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="menu-item delete"
+                              onClick={() => {
+                                handleDeleteInterview(interview.id);
+                                setOpenMenuId(null);
+                                setMenuPosition(null);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </HStack>
-                )}
-              </CardBody>
-            </Card>
-          ))
-        )}
-        </VStack>
-        </Box>
-      </Box>
+                  </div>
+                </div>
+              ))
+            )}
+      </div>
 
       {/* Add/Edit Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            {editingInterview ? "Edit Interview" : "Add Interview"}
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Position</FormLabel>
-                <Input
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  placeholder="e.g., Software Engineer"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Company</FormLabel>
-                <Input
-                  value={formData.company}
-                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  placeholder="e.g., Google"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as InterviewStatus })}
-                >
-                  <option value={InterviewStatus.APPLIED}>Applied</option>
-                  <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
-                  <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
-                  <option value={InterviewStatus.OFFERED}>Offered</option>
-                  <option value={InterviewStatus.REJECTED}>Rejected</option>
-                  <option value={InterviewStatus.ACCEPTED}>Accepted</option>
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Interviewer</FormLabel>
-                <Input
-                  value={formData.interviewer}
-                  onChange={(e) => setFormData({ ...formData, interviewer: e.target.value })}
-                  placeholder="e.g., John Smith"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Notes</FormLabel>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Additional notes..."
-                  rows={3}
-                />
-              </FormControl>
-              <HStack spacing={3} w="full" justify="flex-end">
-                <Button variant="ghost" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button colorScheme="blue" onClick={handleSubmit}>
-                  {editingInterview ? "Update" : "Add"} Interview
-                </Button>
-              </HStack>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    </Box>
+      {isOpen && (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {editingInterview ? "Edit Application" : "Add Application"}
+              </h2>
+              <button className="modal-close-button" onClick={onClose}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-form">
+                <div className="form-group">
+                  <label className="form-label">Position</label>
+                  <input
+                    className="form-input"
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    placeholder="e.g., Software Engineer"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Company</label>
+                  <input
+                    className="form-input"
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    placeholder="e.g., Google"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as InterviewStatus })}
+                  >
+                    <option value={InterviewStatus.APPLIED}>Applied</option>
+                    <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
+                    <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
+                    <option value={InterviewStatus.OFFERED}>Offered</option>
+                    <option value={InterviewStatus.REJECTED}>Rejected</option>
+                    <option value={InterviewStatus.ACCEPTED}>Accepted</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Interviewer</label>
+                  <input
+                    className="form-input"
+                    value={formData.interviewer}
+                    onChange={(e) => setFormData({ ...formData, interviewer: e.target.value })}
+                    placeholder="e.g., John Smith"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Additional notes..."
+                    rows={3}
+                  />
+                </div>
+                <div className="form-actions">
+                  <button className="button button-secondary" onClick={onClose}>
+                    Cancel
+                  </button>
+                  <button className="button button-primary" onClick={handleSubmit}>
+                    {editingInterview ? "Update" : "Add"} Application
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toastMessage && (
+        <div className="toast-container">
+          <div className={`toast ${toastMessage.status}`}>
+            {toastMessage.title}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

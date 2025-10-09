@@ -41,9 +41,55 @@ const LoginScreen = () => {
 
 
     return(
-    <GoogleOAuthProvider clientId="243072454941-d5tf14khd6694kqb4scbk42klabm71h3.apps.googleusercontent.com">
-        <GoogleLogin onSuccess={handleLogin} onError={() => console.log("Login Failed")} />
-    </GoogleOAuthProvider>)
+        <div className="login-screen">
+            {/* Animated Background Elements */}
+            <div className="login-bg-elements">
+                <div className="bg-circle bg-circle-1"></div>
+                <div className="bg-circle bg-circle-2"></div>
+                <div className="bg-circle bg-circle-3"></div>
+                <div className="bg-square bg-square-1"></div>
+                <div className="bg-square bg-square-2"></div>
+            </div>
+            
+            <div className="login-container">
+                <div className="login-content">
+                    <div className="login-header">
+                        <div className="login-icon">🚀</div>
+                        <h1 className="login-title">Dev Journey</h1>
+                        <p className="login-subtitle">Track your development progress and interviews</p>
+                    </div>
+                    
+                    <div className="login-features">
+                        <div className="feature-item">
+                            <span className="feature-icon">📝</span>
+                            <span className="feature-text">Journal Entries</span>
+                        </div>
+                        <div className="feature-item">
+                            <span className="feature-icon">💼</span>
+                            <span className="feature-text">Interview Tracking</span>
+                        </div>
+                        <div className="feature-item">
+                            <span className="feature-icon">📊</span>
+                            <span className="feature-text">Progress Analytics</span>
+                        </div>
+                    </div>
+                    
+                    <div className="login-form">
+                        <GoogleOAuthProvider clientId="243072454941-d5tf14khd6694kqb4scbk42klabm71h3.apps.googleusercontent.com">
+                            <GoogleLogin 
+                                onSuccess={handleLogin} 
+                                onError={() => console.log("Login Failed")}
+                                theme="dark"
+                                size="large"
+                                text="signin_with"
+                                shape="rectangular"
+                            />
+                        </GoogleOAuthProvider>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 
 }
 

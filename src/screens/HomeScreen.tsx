@@ -1,12 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import { Box, VStack, HStack } from '@chakra-ui/react';
-import LinkC from '../components/LinkC';
 import Journal from '../components/Journal';
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { JournalResponse } from '../types/JournalResponse';
 import { fetchJournal, addEntry } from '../api/journals';
 import { setJournal as setJournalStore } from "../redux/journalSlice";
+import "./HomeScreen.css";
 
 
 const HomeScreen = () => {
@@ -19,27 +18,12 @@ const HomeScreen = () => {
   
   const [journal, setJournal] = useState<JournalResponse | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{title: string, status: 'success' | 'error'} | null>(null);
 
-
-  // useEffect(() => {
-  //   const runAsync = async () => {
-  //     if (!jwtToken) return;
-
-  //     const goals = await fetchUserWeeklyGoals(userId, jwtToken);
-
-  //     if (!goals) {
-  //       // No goals found, create new
-  //       const newGoals = await createWeeklyGoals(userId, jwtToken);
-  //       setGoalMetrics(newGoals);
-  //     } else {
-  //       setGoalMetrics(goals);
-  //     }
-
-  //     setLoading(false);
-  //   };
-
-  //   runAsync();
-  // }, [dispatch]);
+  const showToast = (title: string, status: 'success' | 'error') => {
+    setToastMessage({ title, status });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
    useEffect(() => {
    const runAsync = async () => {
@@ -54,6 +38,13 @@ const HomeScreen = () => {
    };
    runAsync();
  }, [jwtToken, userId, cachedJournal, dispatch]);
+
+ // Update local journal state when Redux store changes
+ useEffect(() => {
+   if (cachedJournal) {
+     setJournal(cachedJournal);
+   }
+ }, [cachedJournal]);
 
   const handleAddEntry = () => {
   if (!jwtToken) {
@@ -72,7 +63,7 @@ const HomeScreen = () => {
     .then((newEntry) => {
       console.log("New entry added:", newEntry);
       setSelectedEntryId(newEntry.id);
-      // Refresh the journal to update the whole page state
+      showToast("Journal entry added", "success");
       return fetchJournal(userId, jwtToken);
     })
     .then((updatedJournal) => {
@@ -83,26 +74,26 @@ const HomeScreen = () => {
     })
     .catch((error) => {
       console.error("Error adding new entry:", error);
+      showToast("Failed to add entry", "error");
     });
 };
 
 
 
 
-  // if (loading) {
-  //   return (
-  //     <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-  //       <Spinner size="xl" />
-  //     </Box>
-  //   );
-  // }
-
   return (
-    <VStack spacing={2} alignSelf="stretch" width="100%" minHeight="100vh">
-      <Box width="100%" pl={{ base: 4, md: 6 }} pr={{ base: 4, md: 6 }} flex="1">
-        <Journal journal={journal} selectedEntryId={selectedEntryId} onAddEntry={handleAddEntry} />        
-      </Box>
-    </VStack>
+    <div className="home-screen">
+      <Journal journal={journal} selectedEntryId={selectedEntryId} onAddEntry={handleAddEntry} />
+      
+      {/* Toast */}
+      {toastMessage && (
+        <div className="toast-container">
+          <div className={`toast ${toastMessage.status}`}>
+            {toastMessage.title}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

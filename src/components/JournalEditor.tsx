@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
-import { Box, Card, CardBody, Input, Text, Textarea, Spinner, Button, VStack, HStack, Progress, IconButton } from "@chakra-ui/react";
 import { formatDateTime } from "../utils/date";
 import { GoalMetric } from "../types/JournalResponse";
+import "./JournalEditor.css";
 
 interface JournalEditorProps {
   title: string;
@@ -20,105 +20,95 @@ interface JournalEditorProps {
 
 const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleChange, onContentChange, onBackMobile, goals, onUpdateGoal, titleRef, contentRef }: JournalEditorProps) => {
   return (
-    <Box flex={1} overflowY="auto" pt={4} pb={24}>
-      <Card>
-        <CardBody>
-          <Box mb={2} display={{ base: onBackMobile ? "block" : "none", md: "none" }}>
-            {onBackMobile && (
-              <Button size="sm" onClick={onBackMobile}>Back to list</Button>
-            )}
-          </Box>
-          <Input
-            ref={titleRef}
-            defaultValue={title}
-            onChange={(e) => {
-              onTitleChange(e.target.value);
-            }}
-            onBlur={(e) => {
-              onTitleChange(e.target.value);
-            }}
-            placeholder="Title"
-            size="lg"
-            fontWeight="bold"
-            mb={2}
-            variant="unstyled"
-          />
-          <Text fontSize="sm" color="gray.500" mb={4} textAlign="left">
-            {formatDateTime(dateTime)}
-          </Text>
-          <Textarea
-            ref={contentRef}
-            defaultValue={content}
-            onChange={(e) => {
-              onContentChange(e.target.value);
-            }}
-            onBlur={(e) => {
-              onContentChange(e.target.value);
-            }}
-            placeholder="Start typing..."
-            size="md"
-            resize="vertical"
-            focusBorderColor="blue.500"
-            minH="200px"
-          />
-          
-          {goals && goals.length > 0 && (
-            <Box mt={4}>
-              <Text fontSize="md" fontWeight="semibold" mb={3}>Weekly Goals</Text>
-              <VStack spacing={3} align="stretch">
-                {goals.map((goal) => (
-                  <Box key={goal.id}>
-                    <HStack justify="space-between" mb={1}>
-                      <Text fontSize="sm" fontWeight="medium">{goal.name}</Text>
-                      <HStack spacing={2}>
-                        <Text fontSize="sm" color="gray.600">{goal.actual}/{goal.goal}</Text>
-                        {onUpdateGoal && (
-                          <HStack spacing={1}>
-                            <IconButton
-                              size="xs"
-                              aria-label="Decrease"
-                              icon={<Text fontSize="xs">-</Text>}
-                              onClick={() => onUpdateGoal(goal.id, -1)}
-                              isDisabled={goal.actual <= 0}
-                            />
-                            <IconButton
-                              size="xs"
-                              aria-label="Increase"
-                              icon={<Text fontSize="xs">+</Text>}
-                              onClick={() => onUpdateGoal(goal.id, 1)}
-                            />
-                          </HStack>
-                        )}
-                      </HStack>
-                    </HStack>
-                    <Progress 
-                      value={(goal.actual / goal.goal) * 100} 
-                      colorScheme={goal.actual >= goal.goal ? "green" : "blue"}
-                      size="sm"
-                      rounded="md"
-                    />
-                  </Box>
-                ))}
-              </VStack>
-            </Box>
-          )}
-          
-          <Box mt={2} display="flex" alignItems="center">
-            {isSaving ? (
-              <>
-                <Spinner size="sm" color="blue.500" mr={2} />
-                <Text fontSize="sm" color="gray.500">Saving...</Text>
-              </>
-            ) : (
-              <Text fontSize="sm" color="gray.500">All changes saved.</Text>
-            )}
-          </Box>
-          {saveError && (
-            <Text fontSize="sm" color="red.500" mt={2}>{saveError}</Text>
-          )}
-        </CardBody>
-      </Card>
-    </Box>
+    <div className="journal-editor">
+      {onBackMobile && (
+        <div className="back-button-container">
+          <button className="back-button" onClick={onBackMobile}>Back to list</button>
+        </div>
+      )}
+      <input
+        ref={titleRef}
+        defaultValue={title}
+        onChange={(e) => {
+          onTitleChange(e.target.value);
+        }}
+        onBlur={(e) => {
+          onTitleChange(e.target.value);
+        }}
+        placeholder="Title"
+        className="journal-title-input"
+      />
+      <div className="journal-date">
+        {formatDateTime(dateTime)}
+      </div>
+      <textarea
+        ref={contentRef}
+        defaultValue={content}
+        onChange={(e) => {
+          onContentChange(e.target.value);
+        }}
+        onBlur={(e) => {
+          onContentChange(e.target.value);
+        }}
+        placeholder="Start typing..."
+        className="journal-content-textarea"
+      />
+      
+      {goals && goals.length > 0 && (
+        <div className="goals-section">
+          <div className="goals-title">Weekly Goals</div>
+          <div className="goals-list">
+            {goals.map((goal) => (
+              <div key={goal.id} className="goal-item">
+                <div className="goal-header">
+                  <div className="goal-name">{goal.name}</div>
+                  <div className="goal-controls">
+                    <div className="goal-progress-text">{goal.actual}/{goal.goal}</div>
+                    {onUpdateGoal && (
+                      <div className="goal-buttons">
+                        <button
+                          className="goal-button"
+                          onClick={() => onUpdateGoal(goal.id, -1)}
+                          disabled={goal.actual <= 0}
+                        >
+                          -
+                        </button>
+                        <button
+                          className="goal-button"
+                          onClick={() => onUpdateGoal(goal.id, 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className={`progress-fill ${goal.actual >= goal.goal ? 'progress-complete' : 'progress-incomplete'}`}
+                    style={{ width: `${(goal.actual / goal.goal) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <div className="save-status">
+        {isSaving ? (
+          <>
+            <div className="spinner"></div>
+            <span className="save-text">Saving...</span>
+          </>
+        ) : (
+          <span className="save-text">All changes saved.</span>
+        )}
+      </div>
+      {saveError && (
+        <div className="save-error">{saveError}</div>
+      )}
+    </div>
   );
 };
 

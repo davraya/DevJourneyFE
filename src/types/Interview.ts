@@ -5,8 +5,6 @@ export interface Interview {
   status: InterviewStatus;
   interviewer: string;
   notes: string;
-//   dateCreated?: string;
-//   dateUpdated?: string;
 }
 
 export enum InterviewStatus {

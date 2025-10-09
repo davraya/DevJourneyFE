@@ -52,10 +52,24 @@ const appSlice = createSlice({
             state.loggedIn = false;
             state.jwtToken = null;
             state.userId = "";
+            // Clear all localStorage items
             localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            // Clear any other potential localStorage items
+            localStorage.clear();
+        },
+        clearAllData(state) {
+            // Reset to initial state
+            state.loggedIn = false;
+            state.jwtToken = null;
+            state.userId = "";
+            state.monday = getMonday(new Date());
+            state.selectedDate = formatDate(new Date());
+            // Clear all localStorage items
+            localStorage.clear();
         },
     },
 });
 
-export const { updateDate, updateUserId, login, logout } = appSlice.actions;
+export const { updateDate, updateUserId, login, logout, clearAllData } = appSlice.actions;
 export default appSlice.reducer;

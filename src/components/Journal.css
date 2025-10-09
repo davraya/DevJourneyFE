@@ -1,0 +1,57 @@
+/* Journal Component Styles */
+
+/* Toast Styles */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.toast {
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  margin-bottom: 8px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast.success {
+  background-color: #38a169;
+}
+
+.toast.warning {
+  background-color: #ed8936;
+}
+
+.toast.error {
+  background-color: #e53e3e;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.journal-container {
+  display: flex;
+  overflow: hidden;
+  gap: 24px;
+  height: 100%;
+  padding: 24px;
+  background-color: #1a202c;
+}
+
+@media (max-width: 768px) {
+  .journal-container {
+    padding: 16px;
+    gap: 16px;
+  }
+}

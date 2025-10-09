@@ -1,6 +1,6 @@
 import React from "react";
-import { Link as ChakraLink } from "@chakra-ui/react";
-import { Link as RouterLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import "./LinkC.css";
 
 interface LinkCProps {
   to: string;
@@ -9,9 +9,14 @@ interface LinkCProps {
 
 const LinkC = ({ to, children }: LinkCProps) => {
   return (
-    <ChakraLink as={RouterLink} to={to} color="teal.500" fontWeight="bold">
+    <NavLink 
+      to={to} 
+      className={({ isActive }) => 
+        isActive ? "nav-link active" : "nav-link"
+      }
+    >
       {children}
-    </ChakraLink>
+    </NavLink>
   );
 };
 

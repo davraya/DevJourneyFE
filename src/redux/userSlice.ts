@@ -20,9 +20,15 @@ const userSlice = createSlice({
             state.picture = action.payload.picture;
 
         },
+        clearUser(state) {
+            state.userId = "";
+            state.name = "";
+            state.picture = "";
+            localStorage.removeItem('userId');
+        },
     },
 });
 
 
-export const { updateUser } = userSlice.actions;
+export const { updateUser, clearUser } = userSlice.actions;
 export default userSlice.reducer;
