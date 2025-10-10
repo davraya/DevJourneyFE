@@ -73,7 +73,6 @@
 
 .journal-title-input {
   width: 100%;
-  background: transparent;
   border: none;
   font-size: 28px;
   font-weight: 800;
@@ -82,10 +81,14 @@
   outline: none;
   padding: 0;
   box-sizing: border-box;
+  background: transparent;
+  /* Use a solid color for better reliability */
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  /* Fallback: use solid color when gradient doesn't work */
+  color: #3b82f6;
 }
 
 .journal-title-input::placeholder {
@@ -251,6 +254,10 @@
   color: #a0aec0;
 }
 
+.save-text.saving {
+  color: #fbbf24;
+}
+
 .save-error {
   font-size: 14px;
   color: #e53e3e;
@@ -267,7 +274,6 @@
   .journal-editor::after {
     height: 84px;
   }
-}
   
   .journal-title-input {
     font-size: 20px;
@@ -276,4 +282,5 @@
   .journal-content-textarea {
     min-height: 150px;
   }
+}
 

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { formatDateTime } from "../utils/date";
 import { GoalMetric } from "../types/JournalResponse";
 import "./JournalEditor.css";
@@ -16,9 +16,10 @@ interface JournalEditorProps {
   onUpdateGoal?: (metricId: string, amount: number) => void;
   titleRef?: React.RefObject<HTMLInputElement>;
   contentRef?: React.RefObject<HTMLTextAreaElement>;
+  hasUnsavedChanges?: boolean;
 }
 
-const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleChange, onContentChange, onBackMobile, goals, onUpdateGoal, titleRef, contentRef }: JournalEditorProps) => {
+const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleChange, onContentChange, onBackMobile, goals, onUpdateGoal, titleRef, contentRef, hasUnsavedChanges }: JournalEditorProps) => {
   return (
     <div className="journal-editor">
       {onBackMobile && (
@@ -101,6 +102,8 @@ const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleC
             <div className="spinner"></div>
             <span className="save-text">Saving...</span>
           </>
+        ) : hasUnsavedChanges ? (
+          <span className="save-text saving">Saving changes...</span>
         ) : (
           <span className="save-text">All changes saved.</span>
         )}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
@@ -13,13 +13,23 @@ import { updateUser } from '../redux/userSlice';
 
 const LoginScreen = () => {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('');
 
     const dispatch = useDispatch();
     const handleLogin = async (credentialResponse: any) => {
+        setIsLoading(true);
+        setLoadingMessage('Authenticating with Google...');
+        
         try {
+            // Small delay to show the initial message
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            setLoadingMessage('Processing login...');
             const userInfo = await handleCredentialResponse(credentialResponse);
             const jwtToken = userInfo.jwtToken;
 
+            setLoadingMessage('Setting up your account...');
             localStorage.setItem('token', jwtToken);
             dispatch(login(jwtToken));
 
@@ -27,16 +37,21 @@ const LoginScreen = () => {
                 userId: userInfo.userId,
                 name: userInfo.name,
                 picture: userInfo.picture,
-            
             };
             localStorage.setItem('userId', userState.userId);
             dispatch(updateUser(userState));
 
+            setLoadingMessage('Redirecting to dashboard...');
+            // Small delay before navigation to show the final message
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            navigate('/home');
         } catch (err) {
             console.error("Login failed:", err);
+            setIsLoading(false);
+            setLoadingMessage('');
+            // You could add error handling UI here
         }
-
-        navigate('/home');
     };
 
 
@@ -75,16 +90,23 @@ const LoginScreen = () => {
                     </div>
                     
                     <div className="login-form">
-                        <GoogleOAuthProvider clientId="243072454941-d5tf14khd6694kqb4scbk42klabm71h3.apps.googleusercontent.com">
-                            <GoogleLogin 
-                                onSuccess={handleLogin} 
-                                onError={() => console.log("Login Failed")}
-                                theme="dark"
-                                size="large"
-                                text="signin_with"
-                                shape="rectangular"
-                            />
-                        </GoogleOAuthProvider>
+                        {isLoading ? (
+                            <div className="login-loading">
+                                <div className="loading-spinner"></div>
+                                <div className="loading-message">{loadingMessage}</div>
+                            </div>
+                        ) : (
+                            <GoogleOAuthProvider clientId="243072454941-d5tf14khd6694kqb4scbk42klabm71h3.apps.googleusercontent.com">
+                                <GoogleLogin 
+                                    onSuccess={handleLogin} 
+                                    onError={() => console.log("Login Failed")}
+                                    theme="filled_black"
+                                    size="large"
+                                    text="signin_with"
+                                    shape="rectangular"
+                                />
+                            </GoogleOAuthProvider>
+                        )}
                     </div>
                 </div>
             </div>

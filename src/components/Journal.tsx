@@ -22,6 +22,7 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
 
   const entries = useMemo(() => journal?.journalEntries ?? [], [journal]);
 
+  // Use Redux store as the single source of truth
   const [localEntries, setLocalEntries] = useState(entries);
   useEffect(() => {
     setLocalEntries(entries);
@@ -38,13 +39,12 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
 
   const selectedEntry = localEntries.find((e) => e.id === selectedId) || null;
 
-  const [content, setContent] = useState<string>(selectedEntry?.content ?? "");
-  const [title, setTitle] = useState<string>(selectedEntry?.title ?? "");
+  // Track pending changes to prevent overwriting user edits
+  const [pendingChanges, setPendingChanges] = useState<{[key: string]: {title?: string, content?: string}}>({});
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [, setHasUserEdited] = useState<boolean>(false);
-  const [, setHasUserEditedTitle] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{title: string, status: 'success' | 'error'} | null>(null);
+  const [lastSelectedEntryId, setLastSelectedEntryId] = useState<string | null>(null);
   
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -56,8 +56,24 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
   };
 
   const selectedEntryId = selectedEntry?.id ?? null;
-  const selectedEntryContent = selectedEntry?.content ?? "";
-  const selectedEntryTitle = selectedEntry?.title ?? "";
+  
+  // Get current values, preferring pending changes over stored values
+  const getCurrentContent = useCallback(() => {
+    if (selectedEntryId && pendingChanges[selectedEntryId]?.content !== undefined) {
+      return pendingChanges[selectedEntryId].content!;
+    }
+    return selectedEntry?.content ?? "";
+  }, [selectedEntryId, pendingChanges, selectedEntry]);
+
+  const getCurrentTitle = useCallback(() => {
+    if (selectedEntryId && pendingChanges[selectedEntryId]?.title !== undefined) {
+      return pendingChanges[selectedEntryId].title!;
+    }
+    return selectedEntry?.title ?? "";
+  }, [selectedEntryId, pendingChanges, selectedEntry]);
+
+  const currentContent = getCurrentContent();
+  const currentTitle = getCurrentTitle();
   const selectedEntryDate = ((selectedEntry as any)?.dateTime || (selectedEntry as any)?.date) as string | undefined;
 
   const scheduleAutosave = useCallback(() => {
@@ -76,8 +92,15 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
       try {
         const resp = await editEntry(userId, jwtToken, selectedEntryId, currentContent, currentTitle);
         setIsSaving(false);
-        setContent(currentContent);
-        setTitle(currentTitle);
+        
+        // Clear pending changes for this entry since they're now saved
+        setPendingChanges(prev => {
+          const updated = { ...prev };
+          delete updated[selectedEntryId];
+          return updated;
+        });
+        
+        // Update local entries with the saved data
         const updatedEntries = localEntries.map((it: any) =>
           it.id === selectedEntryId
             ? { ...it, title: resp.title ?? currentTitle, content: resp.content ?? currentContent }
@@ -99,18 +122,30 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
         setSaveError("Failed to save. Changes will retry on next edit.");
         showToast("Failed to save entry", "error");
       }
-    }, 600);
+    }, 800);
   }, [selectedEntryId, jwtToken, userId, dispatch, journal, localEntries]);
 
+  // Update form values when switching entries, but preserve pending changes
   useEffect(() => {
-    setContent(selectedEntryContent);
-    setTitle(selectedEntryTitle);
-    if (contentRef.current) contentRef.current.value = selectedEntryContent;
-    if (titleRef.current) titleRef.current.value = selectedEntryTitle;
+    // Only update form values when actually switching to a different entry
+    if (selectedEntryId === lastSelectedEntryId) return;
+    
+    const displayContent = getCurrentContent();
+    const displayTitle = getCurrentTitle();
+    
+    if (contentRef.current) contentRef.current.value = displayContent;
+    if (titleRef.current) titleRef.current.value = displayTitle;
     setSaveError(null);
-    setHasUserEdited(false);
-    setHasUserEditedTitle(false);
-  }, [selectedEntryId, selectedEntryContent, selectedEntryTitle]);
+    setLastSelectedEntryId(selectedEntryId);
+  }, [selectedEntryId, lastSelectedEntryId, getCurrentContent, getCurrentTitle]);
+
+  // Clear any pending autosave when switching entries
+  useEffect(() => {
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
+  }, [selectedEntryId]);
 
   useEffect(() => {
     return () => {
@@ -141,7 +176,7 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
         return updatedEntries.length ? updatedEntries[0].id : null;
       });
       
-      showToast("Journal entry deleted", "warning");
+      showToast("Journal entry deleted", "success");
     } catch (err) {
       setSaveError("Failed to delete entry.");
       showToast("Failed to delete entry", "error");
@@ -207,19 +242,36 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
 
       {selectedEntry && (
         <JournalEditor
-          title={title}
-          content={content}
+          title={currentTitle}
+          content={currentContent}
           dateTime={selectedEntryDate}
           isSaving={isSaving}
           saveError={saveError}
           goals={selectedEntry.goal?.metrics}
           onUpdateGoal={handleUpdateGoal}
+          hasUnsavedChanges={selectedEntryId ? pendingChanges[selectedEntryId] !== undefined : false}
           onTitleChange={(v) => {
-            setHasUserEditedTitle(true);
+            if (selectedEntryId) {
+              setPendingChanges(prev => ({
+                ...prev,
+                [selectedEntryId]: {
+                  ...prev[selectedEntryId],
+                  title: v
+                }
+              }));
+            }
             scheduleAutosave();
           }}
           onContentChange={(v) => {
-            setHasUserEdited(true);
+            if (selectedEntryId) {
+              setPendingChanges(prev => ({
+                ...prev,
+                [selectedEntryId]: {
+                  ...prev[selectedEntryId],
+                  content: v
+                }
+              }));
+            }
             scheduleAutosave();
           }}
           titleRef={titleRef}
