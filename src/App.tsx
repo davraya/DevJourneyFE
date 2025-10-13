@@ -42,19 +42,32 @@ function AppContent() {
     setIsUserMenuOpen(false);
   };
 
-  // Close user menu when clicking outside
+  // Close user menu when clicking outside or scrolling
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
     };
+    
+    const handleScroll = () => {
+      if (isUserMenuOpen) {
+        setIsUserMenuOpen(false);
+      }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      document.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [isUserMenuOpen]);
   
   return (
     <div className={`app-container ${isLoginScreen ? 'login-screen-container' : ''}`}>

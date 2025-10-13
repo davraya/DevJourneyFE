@@ -17,11 +17,25 @@ const InterviewsScreen = () => {
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const showToast = (title: string, status: 'success' | 'error') => {
     setToastMessage({ title, status });
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+    
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
 
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
@@ -100,8 +114,36 @@ useEffect(() => {
         setMenuPosition(null);
       }
     };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
+    
+    const handleScroll = () => {
+      if (openMenuId !== null) {
+        setOpenMenuId(null);
+        setMenuPosition(null);
+      }
+    };
+    
+    if (openMenuId) {
+      document.addEventListener("click", onDocClick);
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      document.addEventListener('scroll', handleScroll, { passive: true });
+      
+      // Listen to the actual scroll container
+      const scrollContainer = scrollContainerRef.current;
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      }
+    }
+    
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
+      
+      const scrollContainer = scrollContainerRef.current;
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, [openMenuId]);
 
   const handleAddInterview = () => {
@@ -253,7 +295,7 @@ useEffect(() => {
         </div>
       )}
 
-      <div className="interviews-list">
+      <div className="interviews-list" ref={scrollContainerRef}>
             {interviews.length === 0 ? (
               <div className="empty-state-card">
                 <div className="empty-state-content">
@@ -313,86 +355,85 @@ useEffect(() => {
                       </div>
                     ) : (
                       <div className="interview-display">
-                        <div className="interview-info">
-                          <div className="interview-title-section">
-                            <h3 className="interview-position">{interview.position?.trim() || "Untitled Position"}</h3>
-                            <p className="interview-company">{interview.company?.trim() || "Company not specified"}</p>
+                        <div className="interview-main-content">
+                          <div className="interview-info">
+                            <div className="interview-title-section">
+                              <h3 className="interview-position">{interview.position?.trim() || "Untitled Position"}</h3>
+                              <p className="interview-company">{interview.company?.trim() || "Company not specified"}</p>
+                            </div>
+                            <div className="interview-interviewer">
+                              <span className="interviewer-label">Interviewer:</span>
+                              <span className="interviewer-name">{interview.interviewer?.trim() || "N/A"}</span>
+                            </div>
                           </div>
-                          <div className="interview-interviewer">
-                            <span className="interviewer-label">Interviewer:</span>
-                            <span className="interviewer-name">{interview.interviewer?.trim() || "N/A"}</span>
+                          
+                          <div className="interview-right-section">
+                            <div className="interview-status-section">
+                              <div className="status-indicator" style={{ backgroundColor: getStatusColor(interview.status) }}></div>
+                              <select
+                                className="status-select"
+                                value={interview.status}
+                                onChange={(e) => {
+                                  const value = e.target.value as InterviewStatus;
+                                  setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, status: value } : i));
+                                  void saveInterviewById(interview.id, { status: value });
+                                }}
+                              >
+                                <option value={InterviewStatus.APPLIED}>Applied</option>
+                                <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
+                                <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
+                                <option value={InterviewStatus.OFFERED}>Offered</option>
+                                <option value={InterviewStatus.REJECTED}>Rejected</option>
+                                <option value={InterviewStatus.ACCEPTED}>Accepted</option>
+                              </select>
+                            </div>
+                            
+                            <div className="interview-actions">
+                              <div className="saving-indicator">
+                                {savingNotesById[interview.id] && <div className="spinner-small"></div>}
+                              </div>
+                              <button
+                                className="menu-button"
+                                aria-label="More options"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setMenuPosition({ top: rect.top + window.scrollY, left: rect.right + 8 + window.scrollX });
+                                  setOpenMenuId((prev) => (prev === interview.id ? null : interview.id));
+                                }}
+                              >
+                                ⋮
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="interview-status-section">
-                          <div className="status-indicator" style={{ backgroundColor: getStatusColor(interview.status) }}></div>
-                          <select
-                            className="status-select"
-                            value={interview.status}
-                            onChange={(e) => {
-                              const value = e.target.value as InterviewStatus;
-                              setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, status: value } : i));
-                              void saveInterviewById(interview.id, { status: value });
-                            }}
-                          >
-                            <option value={InterviewStatus.APPLIED}>Applied</option>
-                            <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
-                            <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
-                            <option value={InterviewStatus.OFFERED}>Offered</option>
-                            <option value={InterviewStatus.REJECTED}>Rejected</option>
-                            <option value={InterviewStatus.ACCEPTED}>Accepted</option>
-                          </select>
+                          {!isMobileView && (
+                            <div className="interview-notes-section">
+                              <textarea
+                                ref={(el) => {
+                                  if (el) {
+                                    notesValues.current[interview.id] = el.value;
+                                  }
+                                }}
+                                defaultValue={interview.notes || ""}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  notesValues.current[interview.id] = value;
+                                  scheduleNotesAutosave(interview.id, value);
+                                }}
+                                onBlur={(e) => {
+                                  const value = e.target.value;
+                                  setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, notes: value } : i));
+                                }}
+                                placeholder="Notes"
+                                className="notes-textarea"
+                              />
+                            </div>
+                          )}
                         </div>
 
-                        <div className="interview-notes-section">
-                          <textarea
-                            ref={(el) => {
-                              if (el) {
-                                notesValues.current[interview.id] = el.value;
-                              }
-                            }}
-                            defaultValue={interview.notes || ""}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              notesValues.current[interview.id] = value;
-                              scheduleNotesAutosave(interview.id, value);
-                            }}
-                            onBlur={(e) => {
-                              const value = e.target.value;
-                              setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, notes: value } : i));
-                            }}
-                            placeholder="Notes"
-                            className="notes-textarea"
-                          />
-                        </div>
-
-                        <div className="interview-actions">
-                          <div className="saving-indicator">
-                            {savingNotesById[interview.id] && <div className="spinner-small"></div>}
-                          </div>
-                          <button
-                            className="menu-button"
-                            aria-label="More options"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                              setMenuPosition({ top: rect.top + window.scrollY, left: rect.right + 8 + window.scrollX });
-                              setOpenMenuId((prev) => (prev === interview.id ? null : interview.id));
-                            }}
-                          >
-                            ⋮
-                          </button>
-                        </div>
-
-                        {openMenuId === interview.id && menuPosition && (
+                        {openMenuId === interview.id && (
                           <div
                             className="interview-menu"
-                            style={{
-                              position: 'fixed',
-                              top: `${menuPosition.top}px`,
-                              left: `${menuPosition.left}px`,
-                              zIndex: 2000
-                            }}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
