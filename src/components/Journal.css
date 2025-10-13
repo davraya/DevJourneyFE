@@ -53,5 +53,14 @@
   .journal-container {
     padding: 16px;
     gap: 16px;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* Mobile view takes full width */
+  .journal-container > * {
+    width: 100%;
+    flex: 1;
   }
 }

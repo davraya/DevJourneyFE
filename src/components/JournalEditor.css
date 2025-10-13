@@ -266,9 +266,12 @@
 
 @media (max-width: 768px) {
   .journal-editor {
+    width: 100%;
+    margin: 0;
     padding: 16px;
     padding-top: 32px;
     padding-bottom: 16px;
+    box-sizing: border-box;
   }
   
   .journal-editor::after {
@@ -281,6 +284,17 @@
   
   .journal-content-textarea {
     min-height: 150px;
+  }
+  
+  .goal-button {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 6px;
+  }
+  
+  .goal-buttons {
+    gap: 8px;
   }
 }
 

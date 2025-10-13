@@ -46,9 +46,25 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
   const [toastMessage, setToastMessage] = useState<{title: string, status: 'success' | 'error'} | null>(null);
   const [lastSelectedEntryId, setLastSelectedEntryId] = useState<string | null>(null);
   
+  // Mobile view state
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list'); // 'list' or 'editor'
+  
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+    
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
 
   const showToast = (title: string, status: 'success' | 'error') => {
     setToastMessage({ title, status });
@@ -232,51 +248,110 @@ const Journal = ({ journal, selectedEntryId: selectedEntryIdProp, onAddEntry }: 
 
   return (
     <div className="journal-container">
-      <JournalList
-        entries={sortedEntries}
-        selectedId={selectedId}
-        onSelect={(id) => setSelectedId(id)}
-        onAddEntry={onAddEntry}
-        onDeleteEntry={handleDeleteEntry}
-      />
+      {/* Mobile View */}
+      {isMobileView ? (
+        <>
+          {mobileView === 'list' ? (
+            <JournalList
+              entries={sortedEntries}
+              selectedId={selectedId}
+              onSelect={(id) => {
+                setSelectedId(id);
+                setMobileView('editor');
+              }}
+              onAddEntry={onAddEntry}
+              onDeleteEntry={handleDeleteEntry}
+            />
+          ) : selectedEntry && (
+            <JournalEditor
+              title={currentTitle}
+              content={currentContent}
+              dateTime={selectedEntryDate}
+              isSaving={isSaving}
+              saveError={saveError}
+              goals={selectedEntry.goal?.metrics}
+              onUpdateGoal={handleUpdateGoal}
+              hasUnsavedChanges={selectedEntryId ? pendingChanges[selectedEntryId] !== undefined : false}
+              onBackMobile={() => setMobileView('list')}
+              onTitleChange={(v) => {
+                if (selectedEntryId) {
+                  setPendingChanges(prev => ({
+                    ...prev,
+                    [selectedEntryId]: {
+                      ...prev[selectedEntryId],
+                      title: v
+                    }
+                  }));
+                }
+                scheduleAutosave();
+              }}
+              onContentChange={(v) => {
+                if (selectedEntryId) {
+                  setPendingChanges(prev => ({
+                    ...prev,
+                    [selectedEntryId]: {
+                      ...prev[selectedEntryId],
+                      content: v
+                    }
+                  }));
+                }
+                scheduleAutosave();
+              }}
+              titleRef={titleRef}
+              contentRef={contentRef}
+            />
+          )}
+        </>
+      ) : (
+        /* Desktop View */
+        <>
+          <JournalList
+            entries={sortedEntries}
+            selectedId={selectedId}
+            onSelect={(id) => setSelectedId(id)}
+            onAddEntry={onAddEntry}
+            onDeleteEntry={handleDeleteEntry}
+          />
 
-      {selectedEntry && (
-        <JournalEditor
-          title={currentTitle}
-          content={currentContent}
-          dateTime={selectedEntryDate}
-          isSaving={isSaving}
-          saveError={saveError}
-          goals={selectedEntry.goal?.metrics}
-          onUpdateGoal={handleUpdateGoal}
-          hasUnsavedChanges={selectedEntryId ? pendingChanges[selectedEntryId] !== undefined : false}
-          onTitleChange={(v) => {
-            if (selectedEntryId) {
-              setPendingChanges(prev => ({
-                ...prev,
-                [selectedEntryId]: {
-                  ...prev[selectedEntryId],
-                  title: v
+          {selectedEntry && (
+            <JournalEditor
+              title={currentTitle}
+              content={currentContent}
+              dateTime={selectedEntryDate}
+              isSaving={isSaving}
+              saveError={saveError}
+              goals={selectedEntry.goal?.metrics}
+              onUpdateGoal={handleUpdateGoal}
+              hasUnsavedChanges={selectedEntryId ? pendingChanges[selectedEntryId] !== undefined : false}
+              onTitleChange={(v) => {
+                if (selectedEntryId) {
+                  setPendingChanges(prev => ({
+                    ...prev,
+                    [selectedEntryId]: {
+                      ...prev[selectedEntryId],
+                      title: v
+                    }
+                  }));
                 }
-              }));
-            }
-            scheduleAutosave();
-          }}
-          onContentChange={(v) => {
-            if (selectedEntryId) {
-              setPendingChanges(prev => ({
-                ...prev,
-                [selectedEntryId]: {
-                  ...prev[selectedEntryId],
-                  content: v
+                scheduleAutosave();
+              }}
+              onContentChange={(v) => {
+                if (selectedEntryId) {
+                  setPendingChanges(prev => ({
+                    ...prev,
+                    [selectedEntryId]: {
+                      ...prev[selectedEntryId],
+                      content: v
+                    }
+                  }));
                 }
-              }));
-            }
-            scheduleAutosave();
-          }}
-          titleRef={titleRef}
-          contentRef={contentRef}
-        />
+                scheduleAutosave();
+              }}
+              titleRef={titleRef}
+              contentRef={contentRef}
+            />
+          )}
+        </>
       )}
 
       {/* Toast */}

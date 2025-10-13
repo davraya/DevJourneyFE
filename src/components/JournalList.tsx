@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { EntryResponse } from "../types/JournalResponse";
 import { formatDateTime } from "../utils/date";
 import "./JournalList.css";
@@ -14,16 +14,41 @@ interface JournalListProps {
 const JournalList = ({ entries, selectedId, onSelect, onAddEntry, onDeleteEntry }: JournalListProps) => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleGlobalClick() {
       setOpenMenuId(null);
       setMenuPosition(null);
     }
+    
+    function handleScroll() {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    }
+    
     if (openMenuId) {
       document.addEventListener('click', handleGlobalClick);
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      document.addEventListener('scroll', handleScroll, { passive: true });
+      
+      // Listen to the actual scroll container
+      const scrollContainer = scrollContainerRef.current;
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      }
     }
-    return () => document.removeEventListener('click', handleGlobalClick);
+    
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
+      
+      const scrollContainer = scrollContainerRef.current;
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, [openMenuId]);
   return (
     <div className="journal-list-container">
@@ -36,7 +61,7 @@ const JournalList = ({ entries, selectedId, onSelect, onAddEntry, onDeleteEntry 
         </button>
       </div>
       
-      <div className="journal-list-content">
+      <div className="journal-list-content" ref={scrollContainerRef}>
         <div className="journal-list-spacer" />
         {entries.length === 0 ? (
           <div className="empty-state-card">

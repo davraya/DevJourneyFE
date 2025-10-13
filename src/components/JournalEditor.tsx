@@ -57,7 +57,7 @@ const JournalEditor = ({ title, content, dateTime, isSaving, saveError, onTitleC
       
       {goals && goals.length > 0 && (
         <div className="goals-section">
-          <div className="goals-title">Weekly Goals</div>
+          <div className="goals-title">Goals</div>
           <div className="goals-list">
             {goals.map((goal) => (
               <div key={goal.id} className="goal-item">
