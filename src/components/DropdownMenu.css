@@ -1,0 +1,91 @@
+.dropdown-menu-container {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+.dropdown-menu-button {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.dropdown-menu-button:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.dropdown-menu-button:active {
+  background-color: #2d3748;
+}
+
+.dropdown-menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background: transparent;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  overflow: visible;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 999999 !important;
+  isolation: isolate;
+}
+
+.dropdown-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  color: #e2e8f0;
+  background-color: #2d3748;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.dropdown-menu-item:hover {
+  background-color: #4a5568;
+}
+
+.dropdown-menu-item.delete {
+  color: #e53e3e;
+}
+
+.dropdown-menu-item.delete:hover {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+/* Mobile specific styles */
+@media (max-width: 768px) {
+  .dropdown-menu-button {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+    padding: 4px;
+  }
+  
+  .dropdown-menu-item {
+    padding: 12px 16px;
+    font-size: 16px;
+    min-height: 44px;
+  }
+}

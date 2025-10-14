@@ -4,6 +4,7 @@ import { RootState } from "../redux/store";
 import { Interview, InterviewStatus } from "../types/Interview";
 import { getUserInterviews, addInterview, editInterview, deleteInterview } from "../api/interviews";
 import { setInterviews as setInterviewsStore } from "../redux/interviewsSlice";
+import DropdownMenu from "../components/DropdownMenu";
 import "./InterviewsScreen.css";
 
 const InterviewsScreen = () => {
@@ -15,8 +16,6 @@ const InterviewsScreen = () => {
   const [toastMessage, setToastMessage] = useState<{title: string, status: 'success' | 'error'} | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
 
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [isMobileView, setIsMobileView] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -107,44 +106,7 @@ useEffect(() => {
   dispatch(setInterviewsStore(interviews));
 }, [interviews, dispatch]);
 
-  useEffect(() => {
-    const onDocClick = () => {
-      if (openMenuId !== null) {
-        setOpenMenuId(null);
-        setMenuPosition(null);
-      }
-    };
-    
-    const handleScroll = () => {
-      if (openMenuId !== null) {
-        setOpenMenuId(null);
-        setMenuPosition(null);
-      }
-    };
-    
-    if (openMenuId) {
-      document.addEventListener("click", onDocClick);
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      document.addEventListener('scroll', handleScroll, { passive: true });
-      
-      // Listen to the actual scroll container
-      const scrollContainer = scrollContainerRef.current;
-      if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-      }
-    }
-    
-    return () => {
-      document.removeEventListener("click", onDocClick);
-      window.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('scroll', handleScroll);
-      
-      const scrollContainer = scrollContainerRef.current;
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [openMenuId]);
+  // Menu event handlers removed - now handled by DropdownMenu component
 
   const handleAddInterview = () => {
     setEditingInterview(null);
@@ -305,21 +267,32 @@ useEffect(() => {
             ) : (
               interviews.map((interview) => (
                 <div key={interview.id} className="interview-card">
-                  <div className="interview-card-body">
-                    {editingInterview && editingInterview.id === interview.id ? (
-                      <div className="interview-edit-form">
-                        <div className="form-row">
+                  {editingInterview && editingInterview.id === interview.id ? (
+                    <div className="interview-edit-form">
+                      <div className="edit-form-content">
+                        <div className="edit-form-left">
                           <input
                             className="form-input"
                             value={formData.position}
                             onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                             placeholder="Position"
                           />
+                          <input
+                            className="form-input"
+                            value={formData.interviewer}
+                            onChange={(e) => setFormData({ ...formData, interviewer: e.target.value })}
+                            placeholder="Interviewer"
+                          />
+                          <input
+                            className="form-input"
+                            value={formData.company}
+                            onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                            placeholder="Company"
+                          />
                           <select
                             className="form-select"
                             value={formData.status}
                             onChange={(e) => setFormData({ ...formData, status: e.target.value as InterviewStatus })}
-                            style={{ maxWidth: '220px' }}
                           >
                             <option value={InterviewStatus.APPLIED}>Applied</option>
                             <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
@@ -329,138 +302,112 @@ useEffect(() => {
                             <option value={InterviewStatus.ACCEPTED}>Accepted</option>
                           </select>
                         </div>
-                        <input
-                          className="form-input"
-                          value={formData.company}
-                          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                          placeholder="Company"
-                        />
-                        <input
-                          className="form-input"
-                          value={formData.interviewer}
-                          onChange={(e) => setFormData({ ...formData, interviewer: e.target.value })}
-                          placeholder="Interviewer"
-                        />
-                        <textarea
-                          className="form-textarea"
-                          value={formData.notes}
-                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                          placeholder="Notes"
-                          rows={3}
-                        />
-                        <div className="form-actions">
-                          <button className="button button-secondary" onClick={handleInlineCancel}>Cancel</button>
-                          <button className="button button-primary" onClick={() => handleInlineSave(interview.id)}>Save</button>
+                        <div className="edit-form-right">
+                          <div className="edit-form-notes">
+                            <textarea
+                              className="form-textarea"
+                              value={formData.notes}
+                              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                              placeholder="Notes"
+                            />
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <div className="interview-display">
-                        <div className="interview-main-content">
-                          <div className="interview-info">
-                            <div className="interview-title-section">
-                              <h3 className="interview-position">{interview.position?.trim() || "Untitled Position"}</h3>
-                              <p className="interview-company">{interview.company?.trim() || "Company not specified"}</p>
-                            </div>
-                            <div className="interview-interviewer">
-                              <span className="interviewer-label">Interviewer:</span>
-                              <span className="interviewer-name">{interview.interviewer?.trim() || "N/A"}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="interview-right-section">
-                            <div className="interview-status-section">
-                              <div className="status-indicator" style={{ backgroundColor: getStatusColor(interview.status) }}></div>
-                              <select
-                                className="status-select"
-                                value={interview.status}
-                                onChange={(e) => {
-                                  const value = e.target.value as InterviewStatus;
-                                  setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, status: value } : i));
-                                  void saveInterviewById(interview.id, { status: value });
-                                }}
-                              >
-                                <option value={InterviewStatus.APPLIED}>Applied</option>
-                                <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
-                                <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
-                                <option value={InterviewStatus.OFFERED}>Offered</option>
-                                <option value={InterviewStatus.REJECTED}>Rejected</option>
-                                <option value={InterviewStatus.ACCEPTED}>Accepted</option>
-                              </select>
-                            </div>
-                            
-                            <div className="interview-actions">
-                              <div className="saving-indicator">
-                                {savingNotesById[interview.id] && <div className="spinner-small"></div>}
-                              </div>
-                              <button
-                                className="menu-button"
-                                aria-label="More options"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                  setMenuPosition({ top: rect.top + window.scrollY, left: rect.right + 8 + window.scrollX });
-                                  setOpenMenuId((prev) => (prev === interview.id ? null : interview.id));
-                                }}
-                              >
-                                ⋮
-                              </button>
-                            </div>
-                          </div>
-                          {!isMobileView && (
-                            <div className="interview-notes-section">
-                              <textarea
-                                ref={(el) => {
-                                  if (el) {
-                                    notesValues.current[interview.id] = el.value;
-                                  }
-                                }}
-                                defaultValue={interview.notes || ""}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  notesValues.current[interview.id] = value;
-                                  scheduleNotesAutosave(interview.id, value);
-                                }}
-                                onBlur={(e) => {
-                                  const value = e.target.value;
-                                  setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, notes: value } : i));
-                                }}
-                                placeholder="Notes"
-                                className="notes-textarea"
-                              />
-                            </div>
-                          )}
+                      <div className="form-actions">
+                        <button className="button button-secondary" onClick={handleInlineCancel}>Cancel</button>
+                        <button className="button button-primary" onClick={() => handleInlineSave(interview.id)}>Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="interview-info">
+                        <div className="interview-title-section">
+                          <h3 className="interview-position">{interview.position?.trim() || "Untitled Position"}</h3>
+                          <p className="interview-company">{interview.company?.trim() || "Company not specified"}</p>
                         </div>
-
-                        {openMenuId === interview.id && (
-                          <div
-                            className="interview-menu"
-                            onClick={(e) => e.stopPropagation()}
+                        <div className="interview-interviewer">
+                          <span className="interviewer-label">Interviewer:</span>
+                          <span className="interviewer-name">{interview.interviewer?.trim() || "N/A"}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="interview-right-section">
+                        <div className="interview-status-section">
+                          <div className="status-indicator" style={{ backgroundColor: getStatusColor(interview.status) }}></div>
+                          <select
+                            className="status-select"
+                            value={interview.status}
+                            onChange={(e) => {
+                              const value = e.target.value as InterviewStatus;
+                              setInterviews(prev => prev.map(i => i.id === interview.id ? { ...i, status: value } : i));
+                              void saveInterviewById(interview.id, { status: value });
+                            }}
                           >
-                            <button
-                              className="menu-item"
-                              onClick={() => {
-                                setEditingInterview(interview);
-                                setOpenMenuId(null);
-                                setMenuPosition(null);
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="menu-item delete"
-                              onClick={() => {
-                                handleDeleteInterview(interview.id);
-                                setOpenMenuId(null);
-                                setMenuPosition(null);
-                              }}
-                            >
-                              Delete
-                            </button>
+                            <option value={InterviewStatus.APPLIED}>Applied</option>
+                            <option value={InterviewStatus.INTERVIEW_SCHEDULED}>Interview Scheduled</option>
+                            <option value={InterviewStatus.INTERVIEWED}>Interviewed</option>
+                            <option value={InterviewStatus.OFFERED}>Offered</option>
+                            <option value={InterviewStatus.REJECTED}>Rejected</option>
+                            <option value={InterviewStatus.ACCEPTED}>Accepted</option>
+                          </select>
+                        </div>
+                        
+                        <div className="interview-actions">
+                          <div className="saving-indicator">
+                            {savingNotesById[interview.id] && <div className="spinner-small"></div>}
                           </div>
-                        )}
+                          <DropdownMenu
+                            items={[
+                              {
+                                label: 'Edit',
+                                onClick: () => setEditingInterview(interview)
+                              },
+                              {
+                                label: 'Delete',
+                                onClick: () => handleDeleteInterview(interview.id),
+                                isDestructive: true
+                              }
+                            ]}
+                            scrollContainerRef={scrollContainerRef}
+                          />
+                        </div>
                       </div>
-                    )}
-                  </div>
+                      {!isMobileView && (
+                        <div className="interview-notes-section">
+                          <textarea
+                            ref={(el) => {
+                              if (el) {
+                                notesValues.current[interview.id] = el.value;
+                              }
+                            }}
+                            className="notes-textarea"
+                            placeholder="Add notes..."
+                            defaultValue={interview.notes || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              notesValues.current[interview.id] = value;
+                              
+                              // Clear existing timer for this interview
+                              if (notesAutosaveTimers.current[interview.id]) {
+                                clearTimeout(notesAutosaveTimers.current[interview.id]);
+                              }
+                              
+                              // Set saving state
+                              setSavingNotesById(prev => ({ ...prev, [interview.id]: true }));
+                              
+                              // Set new timer for autosave
+                              notesAutosaveTimers.current[interview.id] = window.setTimeout(() => {
+                                void saveInterviewById(interview.id, { notes: value }).finally(() => {
+                                  setSavingNotesById(prev => ({ ...prev, [interview.id]: false }));
+                                });
+                              }, AUTOSAVE_MS);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                    </>
+                  )}
                 </div>
               ))
             )}

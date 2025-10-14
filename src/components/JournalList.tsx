@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { EntryResponse } from "../types/JournalResponse";
 import { formatDateTime } from "../utils/date";
+import DropdownMenu from "./DropdownMenu";
 import "./JournalList.css";
 
 interface JournalListProps {
@@ -12,44 +13,10 @@ interface JournalListProps {
 }
 
 const JournalList = ({ entries, selectedId, onSelect, onAddEntry, onDeleteEntry }: JournalListProps) => {
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [openMenuEntryId, setOpenMenuEntryId] = useState<string | null>(null);
 
-  useEffect(() => {
-    function handleGlobalClick() {
-      setOpenMenuId(null);
-      setMenuPosition(null);
-    }
-    
-    function handleScroll() {
-      setOpenMenuId(null);
-      setMenuPosition(null);
-    }
-    
-    if (openMenuId) {
-      document.addEventListener('click', handleGlobalClick);
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      document.addEventListener('scroll', handleScroll, { passive: true });
-      
-      // Listen to the actual scroll container
-      const scrollContainer = scrollContainerRef.current;
-      if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-      }
-    }
-    
-    return () => {
-      document.removeEventListener('click', handleGlobalClick);
-      window.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('scroll', handleScroll);
-      
-      const scrollContainer = scrollContainerRef.current;
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [openMenuId]);
+  // Menu event handlers removed - now handled by DropdownMenu component
   return (
     <div className="journal-list-container">
       <div className="journal-list-header">
@@ -76,7 +43,7 @@ const JournalList = ({ entries, selectedId, onSelect, onAddEntry, onDeleteEntry 
               <React.Fragment key={entry.id}>
                 {index > 0 && <div className="journal-list-spacer" />}
                 <div
-                  className={`journal-entry-card ${isSelected ? 'selected' : ''}`}
+                  className={`journal-entry-card ${isSelected ? 'selected' : ''} ${openMenuEntryId === entry.id ? 'has-open-menu' : ''}`}
                   onClick={() => onSelect(entry.id)}
                 >
                   <div className="journal-entry-content">
@@ -88,56 +55,24 @@ const JournalList = ({ entries, selectedId, onSelect, onAddEntry, onDeleteEntry 
                         {formatDateTime((entry as any).dateTime || (entry as any).date)}
                       </div>
                     </div>
-                    <button
-                      className="journal-entry-menu-button"
-                      aria-label="More options"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setMenuPosition({ top: rect.top + window.scrollY, left: rect.right + 8 + window.scrollX });
-                        setOpenMenuId((prev) => (prev === entry.id ? null : entry.id));
-                      }}
-                    >
-                      ⋮
-                    </button>
+                    <DropdownMenu
+                      items={[
+                        {
+                          label: 'Open',
+                          onClick: () => onSelect(entry.id)
+                        },
+                        ...(onDeleteEntry ? [{
+                          label: 'Delete',
+                          onClick: () => onDeleteEntry(entry.id),
+                          isDestructive: true
+                        }] : [])
+                      ]}
+                      onMenuToggle={(isOpen) => setOpenMenuEntryId(isOpen ? entry.id : null)}
+                      scrollContainerRef={scrollContainerRef}
+                    />
                   </div>
                 </div>
 
-                {openMenuId === entry.id && menuPosition && (
-                  <div
-                    className="journal-entry-menu"
-                    style={{
-                      position: 'fixed',
-                      top: `${menuPosition!.top}px`,
-                      left: `${menuPosition!.left}px`,
-                      zIndex: 2000
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="journal-menu-content">
-                      <button
-                        className="journal-menu-item"
-                        onClick={() => {
-                          onSelect(entry.id);
-                          setOpenMenuId(null);
-                          setMenuPosition(null);
-                        }}
-                      >
-                        Open
-                      </button>
-                      <button
-                        className="journal-menu-item delete"
-                        onClick={() => {
-                          onDeleteEntry && onDeleteEntry(entry.id);
-                          setOpenMenuId(null);
-                          setMenuPosition(null);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
               </React.Fragment>
             );
           })
