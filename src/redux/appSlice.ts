@@ -10,10 +10,11 @@ interface AppState {
 
 
 
+const token = localStorage.getItem('token');
 const initialState: AppState = {
     userId: "",
-    loggedIn: false,
-    jwtToken: localStorage.getItem('token') || null,
+    loggedIn: !!token, // Set loggedIn to true if token exists
+    jwtToken: token,
 };
 
 const appSlice = createSlice({
@@ -25,25 +26,28 @@ const appSlice = createSlice({
         },
         login(state, action: PayloadAction<string>) {
             state.loggedIn = true;
-            state.jwtToken = action.payload
+            state.jwtToken = action.payload;
         },
         logout(state) {
             state.loggedIn = false;
             state.jwtToken = null;
             state.userId = "";
-            // Clear all localStorage items
+            // Clear only specific localStorage items
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
-            // Clear any other potential localStorage items
-            localStorage.clear();
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userPicture');
         },
         clearAllData(state) {
             // Reset to initial state
             state.loggedIn = false;
             state.jwtToken = null;
             state.userId = "";
-            // Clear all localStorage items
-            localStorage.clear();
+            // Clear only specific localStorage items
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userPicture');
         },
     },
 });

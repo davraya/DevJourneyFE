@@ -99,6 +99,24 @@
   }
 }
 
+/* Desktop view - Menu positioning */
+@media (min-width: 769px) {
+  .interview-actions {
+    position: relative;
+  }
+  
+  .interview-menu {
+    position: absolute;
+    left: 230px;
+    top: 100%;
+    min-width: 120px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    overflow: visible;
+  }
+}
+
 .interviews-header {
   display: flex;
   justify-content: space-between;
