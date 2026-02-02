@@ -128,7 +128,7 @@ useEffect(() => {
       const updatedInterviews = interviews.filter(i => i.id !== interviewId);
       setInterviews(updatedInterviews);
       dispatch(setInterviewsStore(updatedInterviews));
-      showToast("Application deleted", "warning");
+      showToast("Application deleted", "success");
     } catch (err) {
       showToast("Failed to delete application", "error");
     }
