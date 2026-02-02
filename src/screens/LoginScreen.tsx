@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useDispatch } from 'react-redux';
 import { login } from "../redux/appSlice";
-import { handleCredentialResponse } from '../api/auth';
+import { handleCredentialResponse, createDemoUser } from '../api/auth';
 
 import { UserState } from "../redux/states";
 import { updateUser } from '../redux/userSlice';
@@ -54,6 +54,43 @@ const LoginScreen = () => {
         }
     };
 
+    const handleDemoLogin = async () => {
+        setIsLoading(true);
+        setLoadingMessage('Creating demo account...');
+        
+        try {
+            // Small delay to show the initial message
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            setLoadingMessage('Setting up demo user...');
+            const userInfo = await createDemoUser();
+            const jwtToken = userInfo.jwtToken;
+
+            setLoadingMessage('Setting up your account...');
+            localStorage.setItem('token', jwtToken);
+            dispatch(login(jwtToken));
+
+            const userState: UserState = {
+                userId: userInfo.userId,
+                name: userInfo.name,
+                picture: userInfo.picture,
+            };
+            localStorage.setItem('userId', userState.userId);
+            dispatch(updateUser(userState));
+
+            setLoadingMessage('Redirecting to dashboard...');
+            // Small delay before navigation to show the final message
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            navigate('/home');
+        } catch (err) {
+            console.error("Demo login failed:", err);
+            setIsLoading(false);
+            setLoadingMessage('');
+            // You could add error handling UI here
+        }
+    };
+
 
     return(
         <div className="login-screen">
@@ -72,16 +109,27 @@ const LoginScreen = () => {
                                 <div className="loading-message">{loadingMessage}</div>
                             </div>
                         ) : (
-                            <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID!}>
-                                <GoogleLogin 
-                                    onSuccess={handleLogin} 
-                                    onError={() => console.log("Login Failed")}
-                                    theme="outline"
-                                    size="large"
-                                    text="signin_with"
-                                    shape="rectangular"
-                                />
-                            </GoogleOAuthProvider>
+                            <>
+                                <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID!}>
+                                    <GoogleLogin 
+                                        onSuccess={handleLogin} 
+                                        onError={() => console.log("Login Failed")}
+                                        theme="outline"
+                                        size="large"
+                                        text="signin_with"
+                                        shape="rectangular"
+                                    />
+                                </GoogleOAuthProvider>
+                                <div className="login-divider">
+                                    <span>or</span>
+                                </div>
+                                <button 
+                                    className="demo-button"
+                                    onClick={handleDemoLogin}
+                                >
+                                    Try Demo
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
